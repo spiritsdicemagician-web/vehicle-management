@@ -5,10 +5,10 @@
 <title>CAR MANAGER</title>
 <script src="https://accounts.google.com/gsi/client"></script>
 <style>
-  body { font-family: 'Segoe UI', sans-serif; background: #0a0e14; color: #e0e0e0; padding: 20px; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0a0e14; color: #e0e0e0; margin: 0; padding: 20px; }
   .card { background: #151b23; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #333; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { border: 1px solid #444; padding: 12px; text-align: left; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #1a222e; }
+  th, td { border: 1px solid #333; padding: 12px; text-align: left; }
   th { background: #252d38; color: #9fc9ff; }
   button { padding: 10px 20px; cursor: pointer; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-weight: 600; }
   .delete-btn { background: #ef4444; }
@@ -23,15 +23,19 @@
   <button id="loadBtn">2. データ読み込み</button>
 </div>
 
+<!-- 車両一覧エリア -->
 <div class="card">
   <h2>車両一覧</h2>
   <table id="carTable">
-    <thead><tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>使用者</th><th>点検日</th><th>操作</th></tr></thead>
+    <thead>
+      <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>使用者</th><th>点検日</th><th>操作</th></tr>
+    </thead>
     <tbody></tbody>
   </table>
   <button onclick="saveVehicleData()">3. 上書き保存</button>
 </div>
 
+<!-- 車両登録エリア -->
 <div class="card">
   <h2>車両登録</h2>
   <input type="text" id="carNumber" placeholder="ナンバー">
@@ -45,7 +49,7 @@
 <script>
   let appData = { cars: [] };
   let accessToken = null;
-  let tokenClient = google.accounts.oauth2.initTokenClient({
+  const tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
     scope: 'https://www.googleapis.com/auth/drive.file',
     callback: (res) => { accessToken = res.access_token; document.getElementById("statusMsg").innerText = "ログイン成功"; }
@@ -76,6 +80,7 @@
   function deleteCar(id) { appData.cars = appData.cars.filter(c => c.id !== id); renderCarTable(); }
 
   document.getElementById("loadBtn").onclick = async () => {
+    if (!accessToken) { alert("先にログインしてください"); return; }
     const res = await fetch("https://www.googleapis.com/drive/v3/files?q=name='vehicle_data.json' and trashed=false", { headers: { Authorization: "Bearer " + accessToken }});
     const list = await res.json();
     if (list.files?.length) {
@@ -87,6 +92,7 @@
   };
 
   async function saveVehicleData() {
+    if (!accessToken) { alert("先にログインしてください"); return; }
     const res = await fetch("https://www.googleapis.com/drive/v3/files?q=name='vehicle_data.json' and trashed=false", { headers: { Authorization: "Bearer " + accessToken }});
     const list = await res.json();
     const blob = new Blob([JSON.stringify(appData)], { type: "application/json" });
