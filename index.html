@@ -3,76 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <title>CAR MANAGER</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 <style>
-  :root { --bg: #0a0e14; --card: #151b23; --primary: #3b82f6; --text: #e2e8f0; }
-  body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; }
-  
-  /* サイドバー */
-  aside { width: 240px; background: var(--card); height: 100vh; padding: 20px; box-sizing: border-box; border-right: 1px solid #333; }
-  
-  /* メインエリア */
-  main { flex: 1; padding: 30px; }
-  
-  /* カード・コンポーネント */
-  .card { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #333; }
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-  
-  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-  th, td { padding: 15px; text-align: left; border-bottom: 1px solid #333; }
-  
-  /* ボタン・入力 */
-  button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
-  input { background: #1a222e; border: 1px solid #333; color: white; padding: 10px; border-radius: 6px; }
-  
+  body { font-family: 'Segoe UI', sans-serif; background: #0a0e14; color: #e0e0e0; padding: 20px; }
+  .card { background: #151b23; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #333; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { border: 1px solid #444; padding: 12px; text-align: left; }
+  th { background: #252d38; color: #9fc9ff; }
+  button { padding: 10px 20px; cursor: pointer; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-weight: 600; }
   .delete-btn { background: #ef4444; }
+  input { padding: 10px; border-radius: 6px; border: 1px solid #333; background: #1a222e; color: white; margin-right: 5px; }
 </style>
 </head>
 <body>
 
-<aside>
-  <h2>CAR MANAGER</h2>
-  <nav><div>ダッシュボード</div><div>車両一覧</div><div>車両登録</div></nav>
-</aside>
+<div class="card">
+  <h2>状態: <span id="statusMsg">初期化中...</span></h2>
+  <button id="loginBtn">1. Googleログイン</button>
+  <button id="loadBtn">2. データ読み込み</button>
+</div>
 
-<main>
-  <div class="grid">
-    <div class="card">登録車両数<br><h3>3 台</h3></div>
-    <div class="card">今月の点検予定<br><h3>1 台</h3></div>
-    <div class="card">点検期限超過<br><h3>0 台</h3></div>
-    <div class="card">Google Drive<br>同期中</div>
-  </div>
-
-  <div class="card">
-    <h2>Googleドライブ連携</h2>
-    <button id="loginBtn">Googleでログイン</button>
-    <button id="loadBtn">データを読み込む</button>
-    <p id="statusMsg"></p>
-  </div>
-
-  <div class="card">
-    <h2>車両一覧</h2>
-    <table id="carTable">
-      <thead><tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>使用者</th><th>点検日</th><th>操作</th></tr></thead>
-      <tbody></tbody>
-    </table>
-    <button onclick="saveVehicleData()">上書き保存</button>
-  </div>
-
-  <div class="card">
-    <h2>車両登録</h2>
-    <input type="text" id="carNumber" placeholder="ナンバー">
-    <input type="text" id="model" placeholder="車種">
-    <input type="text" id="maker" placeholder="メーカー">
-    <input type="text" id="user" placeholder="使用者">
-    <input type="date" id="inspection">
-    <button id="addCar">登録する</button>
-  </div>
-</main>
+<div class="card">
+  <h2>車両一覧</h2>
+  <table id="carTable">
+    <thead><tr><th>ナンバー</th><th>車種</th><th>操作</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <button onclick="saveVehicleData()">3. 上書き保存</button>
+</div>
 
 <script>
-  // ここに既存のJavaScriptロジックをそのままコピー＆ペーストしてね！
-  // (ログイン、読み込み、保存、登録の関数)
+  let appData = { cars: [] };
+  let accessToken = null;
+  let tokenClient;
+
+  window.onload = () => {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: (res) => {
+        accessToken = res.access_token;
+        document.getElementById("statusMsg").innerText = "ログイン完了";
+      }
+    });
+    document.getElementById("statusMsg").innerText = "準備完了";
+  };
+
+  document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
+
+  document.getElementById("loadBtn").onclick = async () => {
+    if (!accessToken) { alert("ログインしてください"); return; }
+    try {
+      const res = await fetch("https://www.googleapis.com/drive/v3/files?q=name='vehicle_data.json' and trashed=false", {
+        headers: { Authorization: "Bearer " + accessToken }
+      });
+      const list = await res.json();
+      if (!list.files?.length) { document.getElementById("statusMsg").innerText = "ファイルが見つかりません"; return; }
+      
+      const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${list.files[0].id}?alt=media`, {
+        headers: { Authorization: "Bearer " + accessToken }
+      });
+      appData = await fileRes.json();
+      
+      const tbody = document.querySelector("#carTable tbody");
+      tbody.innerHTML = "";
+      appData.cars.forEach(car => {
+        tbody.innerHTML += `<tr><td>${car.number}</td><td>${car.model}</td><td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td></tr>`;
+      });
+      document.getElementById("statusMsg").innerText = "読み込み完了";
+    } catch (e) { document.getElementById("statusMsg").innerText = "エラー: " + e.message; }
+  };
+
+  async function saveVehicleData() {
+    // 既存の保存ロジック（省略）
+    alert("保存機能は後ほど統合しましょう。まずは読み込みが動くか試してね！");
+  }
 </script>
 </body>
 </html>
