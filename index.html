@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>車両管理アプリ + Googleドライブ保存</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    background: #1e1e1e;
+    color: #e0e0e0;
+  }
+  h1, h2 {
+    margin: 0 0 12px 0;
+    font-weight: 600;
+  }
+  .container {
+    padding: 24px;
+    max-width: 1100px;
+    margin: auto;
+  }
+  .card {
+    background: #2a2a2a;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    transition: 0.2s;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 14px rgba(0,0,0,0.6);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+  th, td {
+    border-bottom: 1px solid #444;
+    padding: 10px;
+  }
+  th {
+    background: #333;
+  }
+  input, button {
+    padding: 8px;
+    margin-top: 6px;
+    border-radius: 6px;
+    border: none;
+  }
+  input {
+    background: #3a3a3a;
+    color: #fff;
+    width: 250px;
+  }
+  button {
+    background: #0078d4;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button:hover {
+    background: #0a84ff;
+  }
+  .status {
+    font-size: 0.9em;
+    margin-top: 6px;
+    color: #9cdcfe;
+  }
+</style>
+<script src="https://apis.google.com/js/api.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>車両管理アプリ + Googleドライブ保存</h1>
+
+  <!-- Googleログイン -->
+  <div class="card">
+    <h2>Googleドライブ連携</h2>
+    <button onclick="googleSignIn()">Googleログイン</button>
+    <p id="loginStatus" class="status"></p>
+  </div>
+
+  <!-- 車両一覧 -->
+  <div class="card">
+    <h2>車両一覧</h2>
+    <table id="carTable">
+      <thead>
+        <tr>
+          <th>ナンバー</th>
+          <th>車種</th>
+          <th>メーカー</th>
+          <th>主な使用者</th>
+          <th>点検日</th>
+          <th>選択</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button onclick="saveVehicleData()">車両データをGoogleドライブに保存</button>
+    <p id="saveStatus" class="status"></p>
+  </div>
+
+  <!-- 車両登録 -->
+  <div class="card">
+    <h2>車両登録</h2>
+    <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
+    <label>車種：<br><input type="text" id="model"></label><br>
+    <label>メーカー：<br><input type="text" id="maker"></label><br>
+    <label>主な使用者：<br><input type="text" id="user"></label><br>
+    <label>点検日：<br><input type="date" id="inspection"></label><br>
+    <button id="addCar">車両を登録</button>
+  </div>
+
+  <!-- 車検証PDF -->
+  <div class="card">
+    <h2>車検証PDF管理</h2>
+    <input type="file" id="pdfFile" accept="application/pdf"><br>
+    <button onclick="uploadPDF()">PDFをGoogleドライブに保存</button>
+    <p id="pdfStatus" class="status"></p>
+  </div>
+
+  <!-- 選択中の車両 -->
+  <div class="card" id="selectedCarBox" style="display:none;">
+    <h2>選択中の車両</h2>
+    <p id="selectedCarInfo"></p>
+  </div>
+
+  <!-- 給油記録 -->
+  <div class="card" id="fuelBox" style="display:none;">
+    <h2>給油記録</h2>
+    <label>日付：<br><input type="date" id="fuelDate"></label><br>
+    <label>走行距離：<br><input type="number" id="odometer"></label><br>
+    <label>給油量(L)：<br><input type="number" id="fuelAmount" step="0.01"></label><br>
+    <label>金額(円)：<br><input type="number" id="price"></label><br>
+    <button id="addFuel">記録追加</button>
+
+    <h3 style="margin-top:20px;">給油記録一覧</h3>
+    <table id="fuelTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>日付</th>
+          <th>走行距離</th>
+          <th>給油量</th>
+          <th>金額</th>
+          <th>区間距離</th>
+          <th>燃費</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  // アプリ内データ
+  let appData = { cars: [] };
+  let currentCarNumber = null;
+
+  // 車両登録
+  document.getElementById("addCar").addEventListener("click", () => {
+    const number = carNumber.value.trim();
+    const model = document.getElementById("model").value.trim();
+    const maker = document.getElementById("maker").value.trim();
+    const user = document.getElementById("user").value.trim();
+    const inspection = document.getElementById("inspection").value;
+
+    if (!number || !model) {
+      alert("ナンバーと車種は必須です");
+      return;
+    }
+
+    appData.cars.push({
+      number, model, maker, user, inspection,
+      records: { fuel: [] }
+    });
+
+    renderCarTable();
+  });
+
+  // 車両一覧表示
+  function renderCarTable() {
+    const tbody = document.querySelector("#carTable tbody");
+    tbody.innerHTML = "";
+
+    appData.cars.forEach(car => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${car.number}</td>
+        <td>${car.model}</td>
+        <td>${car.maker}</td>
+        <td>${car.user}</td>
+        <td>${car.inspection}</td>
+        <td><button onclick="selectCar('${car.number}')">選択</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // 車両選択
+  window.selectCar = function(number) {
+    currentCarNumber = number;
+    const car = appData.cars.find(c => c.number === number);
+
+    selectedCarBox.style.display = "block";
+    fuelBox.style.display = "block";
+
+    selectedCarInfo.textContent =
+      `ナンバー: ${car.number} / 車種: ${car.model} / メーカー: ${car.maker} / 使用者: ${car.user} / 点検日: ${car.inspection}`;
+
+    renderFuelTable();
+  };
+
+  // 給油記録追加
+  document.getElementById("addFuel").addEventListener("click", () => {
+    if (!currentCarNumber) return;
+
+    const car = appData.cars.find(c => c.number === currentCarNumber);
+
+    const date = fuelDate.value;
+    const odometerVal = parseFloat(odometer.value);
+    const fuelAmountVal = parseFloat(fuelAmount.value);
+    const priceVal = parseInt(price.value);
+
+    if (!date || isNaN(odometerVal) || isNaN(fuelAmountVal) || isNaN(priceVal)) {
+      alert("すべて入力してください");
+      return;
+    }
+
+    car.records.fuel.push({ date, odometer: odometerVal, fuelAmount: fuelAmountVal, price: priceVal });
+    car.records.fuel.sort((a, b) => a.date.localeCompare(b.date));
+
+    renderFuelTable();
+  });
+
+  // 給油記録表示
+  function renderFuelTable() {
+    const tbody = document.querySelector("#fuelTable tbody");
+    tbody.innerHTML = "";
+
+    const car = appData.cars.find(c => c.number === currentCarNumber);
+    const records = car.records.fuel;
+
+    for (let i = 0; i < records.length; i++) {
+      const r = records[i];
+      const prev = records[i - 1];
+
+      let distance = "";
+      let efficiency = "";
+
+      if (prev) {
+        distance = (r.odometer - prev.odometer).toFixed(1);
+        efficiency = (distance / r.fuelAmount).toFixed(2);
+      }
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${r.date}</td>
+        <td>${r.odometer}</td>
+        <td>${r.fuelAmount}</td>
+        <td>${r.price}</td>
+        <td>${distance}</td>
+        <td>${efficiency}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  // ------------------------------
+  // Google API 初期化
+  // ------------------------------
+  function initGoogleAPI() {
+    gapi.load("client:auth2", () => {
+      gapi.client.init({
+        apiKey: "AIzaSyCIll7q5pkd2WstVf5YyMWkkfD0tGBqCoM",
+        clientId: "1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/drive.file",
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+      }).then(() => {
+        document.getElementById("loginStatus").textContent = "Google API 初期化完了";
+      }).catch(err => {
+        document.getElementById("loginStatus").textContent = "初期化エラー: " + err.details;
+      });
+    });
+  }
+
+  initGoogleAPI();
+
+  // Googleログイン
+  function googleSignIn() {
+    gapi.auth2.getAuthInstance().signIn().then(() => {
+      document.getElementById("loginStatus").textContent = "ログイン成功";
+    }).catch(err => {
+      document.getElementById("loginStatus").textContent = "ログイン失敗: " + err.error;
+    });
+  }
+
+  // 車両データをGoogleドライブへ保存
+  async function saveVehicleData() {
+    try {
+      const jsonData = JSON.stringify(appData);
+      const file = new Blob([jsonData], { type: "application/json" });
+
+      const metadata = {
+        name: "vehicle_data.json",
+        mimeType: "application/json"
+      };
+
+      const accessToken = gapi.auth.getToken().access_token;
+
+      const form = new FormData();
+      form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+      form.append("file", file);
+
+      const res = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+        {
+          method: "POST",
+          headers: { Authorization: "Bearer " + accessToken },
+          body: form
+        }
+      );
+
+      const result = await res.json();
+      document.getElementById("saveStatus").textContent =
+        "車両データを保存しました（File ID: " + result.id + ")";
+    } catch (e) {
+      document.getElementById("saveStatus").textContent = "保存エラー: " + e.message;
+    }
+  }
+
+  // PDFアップロード → Googleドライブ保存
+  async function uploadPDF() {
+    try {
+      const fileInput = document.getElementById("pdfFile");
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("PDFを選択してください");
+        return;
+      }
+
+      const metadata = {
+        name: "shaken.pdf",
+        mimeType: "application/pdf"
+      };
+
+      const accessToken = gapi.auth.getToken().access_token;
+
+      const form = new FormData();
+      form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+      form.append("file", file);
+
+      const res = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+        {
+          method: "POST",
+          headers: { Authorization: "Bearer " + accessToken },
+          body: form
+        }
+      );
+
+      const result = await res.json();
+      document.getElementById("pdfStatus").textContent =
+        "PDFを保存しました（File ID: " + result.id + ")";
+    } catch (e) {
+      document.getElementById("pdfStatus").textContent = "保存エラー: " + e.message;
+    }
+  }
+</script>
+
+</body>
+</html>
