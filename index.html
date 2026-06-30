@@ -2,21 +2,75 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>車両管理アプリ - 完全復元版</title>
+<title>車両管理アプリ - 完全版</title>
+
+<!-- Google OAuth -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <style>
-  body { font-family: 'Segoe UI', sans-serif; background: #1e1e1e; color: #e0e0e0; padding: 20px; }
-  .card { background: #2a2a2a; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { border: 1px solid #444; padding: 8px; text-align: left; }
-  th { background: #333; }
-  input, button { padding: 8px; margin: 4px; border-radius: 4px; border: none; }
-  button { background: #0078d4; color: #fff; cursor: pointer; }
-  .delete-btn { background: #d9534f; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #1e1e1e;
+    color: #e0e0e0;
+    padding: 20px;
+  }
+
+  .card {
+    background: #2a2a2a;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+
+  .flex {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  input {
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    background: #333;
+    color: #fff;
+    width: 180px;
+  }
+
+  button {
+    padding: 10px 16px;
+    border-radius: 6px;
+    border: none;
+    background: #0078d4;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .delete-btn {
+    background: #d9534f;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+  th, td {
+    border: 1px solid #444;
+    padding: 8px;
+    text-align: left;
+  }
+
+  th {
+    background: #333;
+  }
 </style>
 </head>
 <body>
 
+<!-- Googleログイン -->
 <div class="card">
   <h2>Googleドライブ連携</h2>
   <button id="loginBtn">Googleログイン</button>
@@ -24,24 +78,31 @@
   <p id="statusMsg"></p>
 </div>
 
+<!-- 車両一覧 -->
 <div class="card">
   <h2>車両一覧</h2>
   <table id="carTable">
     <thead>
-      <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>使用者</th><th>点検日</th><th>操作</th></tr>
+      <tr>
+        <th>ナンバー</th><th>車種</th><th>メーカー</th>
+        <th>使用者</th><th>点検日</th><th>操作</th>
+      </tr>
     </thead>
     <tbody></tbody>
   </table>
   <button onclick="saveVehicleData()">上書き保存</button>
 </div>
 
+<!-- 車両登録 -->
 <div class="card">
   <h2>車両登録</h2>
-  <input type="text" id="carNumber" placeholder="ナンバー">
-  <input type="text" id="model" placeholder="車種">
-  <input type="text" id="maker" placeholder="メーカー">
-  <input type="text" id="user" placeholder="使用者">
-  <input type="date" id="inspection">
+  <div class="flex">
+    <input type="text" id="carNumber" placeholder="ナンバー">
+    <input type="text" id="model" placeholder="車種">
+    <input type="text" id="maker" placeholder="メーカー">
+    <input type="text" id="user" placeholder="使用者">
+    <input type="date" id="inspection">
+  </div>
   <button id="addCar">登録</button>
 </div>
 
@@ -49,14 +110,19 @@
   let appData = { cars: [] };
   let accessToken = null;
 
+  /* Google OAuth */
   const tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    callback: (res) => { accessToken = res.access_token; document.getElementById("statusMsg").textContent = "ログイン成功"; }
+    client_id: "1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com",
+    scope: "https://www.googleapis.com/auth/drive.file",
+    callback: (res) => {
+      accessToken = res.access_token;
+      document.getElementById("statusMsg").textContent = "ログイン成功";
+    }
   });
 
   document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
 
+  /* 車両登録 */
   document.getElementById("addCar").onclick = () => {
     appData.cars.push({
       id: Date.now(),
@@ -73,10 +139,15 @@
     const tbody = document.querySelector("#carTable tbody");
     tbody.innerHTML = "";
     appData.cars.forEach(car => {
-      tbody.innerHTML += `<tr>
-        <td>${car.number}</td><td>${car.model}</td><td>${car.maker}</td>
-        <td>${car.user}</td><td>${car.inspection}</td>
-        <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td></tr>`;
+      tbody.innerHTML += `
+        <tr>
+          <td>${car.number}</td>
+          <td>${car.model}</td>
+          <td>${car.maker}</td>
+          <td>${car.user}</td>
+          <td>${car.inspection}</td>
+          <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td>
+        </tr>`;
     });
   }
 
@@ -85,29 +156,69 @@
     renderCarTable();
   }
 
+  /* Drive 読み込み */
   document.getElementById("loadBtn").onclick = async () => {
     const query = encodeURIComponent("name = 'vehicle_data.json' and trashed = false");
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, { headers: { Authorization: "Bearer " + accessToken }});
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
+      headers: { Authorization: "Bearer " + accessToken }
+    });
+
     const list = await res.json();
-    if (list.files?.length) {
-      const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${list.files[0].id}?alt=media`, { headers: { Authorization: "Bearer " + accessToken }});
-      appData = await fileRes.json();
-      renderCarTable();
-      document.getElementById("statusMsg").textContent = "読み込みました！";
+    if (!list.files?.length) {
+      document.getElementById("statusMsg").textContent = "データがありません";
+      return;
     }
+
+    const fileRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${list.files[0].id}?alt=media`,
+      { headers: { Authorization: "Bearer " + accessToken } }
+    );
+
+    appData = await fileRes.json();
+    renderCarTable();
+    document.getElementById("statusMsg").textContent = "読み込みました！";
   };
 
+  /* Drive 上書き保存 */
   async function saveVehicleData() {
-    const file = new Blob([JSON.stringify(appData)], { type: "application/json" });
-    const metadata = { name: "vehicle_data.json", mimeType: "application/json" };
-    const form = new FormData();
-    form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-    form.append("file", file);
-    await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
-      method: "POST", headers: { Authorization: "Bearer " + accessToken }, body: form
+    const query = encodeURIComponent("name = 'vehicle_data.json' and trashed = false");
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
+      headers: { Authorization: "Bearer " + accessToken }
     });
+
+    const list = await res.json();
+
+    if (list.files?.length) {
+      /* 上書き（PATCH） */
+      await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${list.files[0].id}?uploadType=media`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(appData)
+        }
+      );
+    } else {
+      /* 新規作成（POST） */
+      const file = new Blob([JSON.stringify(appData)], { type: "application/json" });
+      const metadata = { name: "vehicle_data.json", mimeType: "application/json" };
+      const form = new FormData();
+      form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+      form.append("file", file);
+
+      await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + accessToken },
+        body: form
+      });
+    }
+
     alert("保存しました");
   }
 </script>
+
 </body>
 </html>
