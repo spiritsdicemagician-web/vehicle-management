@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <title>車両管理アプリ + Googleドライブ保存</title>
-<!-- Google Identity Services を読み込み -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://apis.google.com/js/api.js" async defer></script>
 <style>
   body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #1e1e1e; color: #e0e0e0; }
   .container { padding: 24px; max-width: 1100px; margin: auto; }
-  .card { background: #2a2a2a; padding: 20px; border-radius: 10px; margin-top: 20px; }
-  button { background: #0078d4; color: #fff; cursor: pointer; padding: 8px 16px; border: none; border-radius: 6px; }
-  .status { margin-top: 6px; color: #9cdcfe; }
+  .card { background: #2a2a2a; padding: 20px; border-radius: 10px; margin-top: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.4); }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { border-bottom: 1px solid #444; padding: 10px; }
+  th { background: #333; }
+  input, button { padding: 8px; margin-top: 6px; border-radius: 6px; border: none; }
+  input { background: #3a3a3a; color: #fff; width: 250px; }
+  button { background: #0078d4; color: #fff; cursor: pointer; font-weight: 600; }
+  button:hover { background: #0a84ff; }
+  .status { font-size: 0.9em; margin-top: 6px; color: #9cdcfe; }
 </style>
 </head>
 <body>
@@ -19,27 +23,45 @@
 <div class="container">
   <h1>車両管理アプリ + Googleドライブ保存</h1>
 
+  <!-- Googleログイン -->
   <div class="card">
     <h2>Googleドライブ連携</h2>
-    <!-- 新しいログインボタン -->
-    <div id="g_id_onload"
-         data-client_id="1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com"
-         data-callback="handleCredentialResponse"
-         data-auto_prompt="false">
-    </div>
     <button id="loginBtn">Googleログイン</button>
     <p id="loginStatus" class="status"></p>
   </div>
-  
-  <!-- 以下、車両一覧や登録のフォームはそのまま -->
-  <!-- ... (省略) ... -->
+
+  <!-- 車両一覧 -->
+  <div class="card">
+    <h2>車両一覧</h2>
+    <table id="carTable">
+      <thead>
+        <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>主な使用者</th><th>点検日</th><th>選択</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button onclick="saveVehicleData()">車両データをGoogleドライブに保存</button>
+    <p id="saveStatus" class="status"></p>
+  </div>
+
+  <!-- 車両登録 -->
+  <div class="card">
+    <h2>車両登録</h2>
+    <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
+    <label>車種：<br><input type="text" id="model"></label><br>
+    <label>メーカー：<br><input type="text" id="maker"></label><br>
+    <label>主な使用者：<br><input type="text" id="user"></label><br>
+    <label>点検日：<br><input type="date" id="inspection"></label><br>
+    <button id="addCar">車両を登録</button>
+  </div>
 </div>
 
 <script>
+  let appData = { cars: [] };
+  let currentCarNumber = null;
   let tokenClient;
   let accessToken = null;
 
-  // 1. Google Identity Services 初期化
+  // Google Identity Services 初期化
   window.onload = function () {
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
@@ -49,20 +71,38 @@
         document.getElementById("loginStatus").textContent = "ログイン成功！";
       },
     });
-    
-    document.getElementById("loginBtn").onclick = () => {
-      tokenClient.requestAccessToken();
-    };
+    document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
   };
 
-  // 2. 保存機能の書き換え (gapi.auth.getToken() を使わず、取得した accessToken を使用)
+  // 車両登録機能
+  document.getElementById("addCar").addEventListener("click", () => {
+    const number = document.getElementById("carNumber").value.trim();
+    const model = document.getElementById("model").value.trim();
+    if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
+    appData.cars.push({
+      number, model, 
+      maker: document.getElementById("maker").value, 
+      user: document.getElementById("user").value, 
+      inspection: document.getElementById("inspection").value
+    });
+    renderCarTable();
+  });
+
+  function renderCarTable() {
+    const tbody = document.querySelector("#carTable tbody");
+    tbody.innerHTML = "";
+    appData.cars.forEach(car => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${car.number}</td><td>${car.model}</td><td>${car.maker}</td><td>${car.user}</td><td>${car.inspection}</td><td>選択</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // 保存機能
   async function saveVehicleData() {
     if (!accessToken) { alert("先にログインしてください"); return; }
-    
-    const jsonData = JSON.stringify(appData);
-    const file = new Blob([jsonData], { type: "application/json" });
+    const file = new Blob([JSON.stringify(appData)], { type: "application/json" });
     const metadata = { name: "vehicle_data.json", mimeType: "application/json" };
-
     const form = new FormData();
     form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
     form.append("file", file);
@@ -72,11 +112,9 @@
       headers: { Authorization: "Bearer " + accessToken },
       body: form
     });
-    
     const result = await res.json();
-    document.getElementById("saveStatus").textContent = "保存完了: " + result.id;
+    document.getElementById("saveStatus").textContent = "保存完了 (ID: " + result.id + ")";
   }
 </script>
-
 </body>
 </html>
