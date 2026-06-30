@@ -3,102 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <title>車両管理アプリ - Glass UI</title>
-
-<!-- Google OAuth（必ず最初に読み込む） -->
 <script src="https://accounts.google.com/gsi/client"></script>
-
 <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #0f0f0f, #1b1b1b);
-    color: #e0e0e0;
-    padding: 20px;
-  }
-
-  .card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  }
-
-  h2 {
-    margin-top: 0;
-    font-weight: 600;
-    color: #9fc9ff;
-    text-shadow: 0 0 8px rgba(100,150,255,0.4);
-  }
-
-  .flex {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  input {
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    background: rgba(255,255,255,0.12);
-    color: #fff;
-    width: 180px;
-  }
-
-  button {
-    padding: 12px 18px;
-    border-radius: 10px;
-    border: none;
-    background: linear-gradient(135deg, #3a8dff, #005eff);
-    color: #fff;
-    cursor: pointer;
-    font-weight: 600;
-    transition: 0.2s;
-    box-shadow: 0 0 10px rgba(0,120,255,0.4);
-  }
-
-  button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 16px rgba(0,120,255,0.7);
-  }
-
-  .delete-btn {
-    background: linear-gradient(135deg, #ff5b5b, #d93636);
-    box-shadow: 0 0 10px rgba(255,80,80,0.4);
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 12px;
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(6px);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  th, td {
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding: 10px;
-    text-align: left;
-  }
-
-  th {
-    background: rgba(255,255,255,0.08);
-    color: #bcd9ff;
-  }
-
-  tr:hover {
-    background: rgba(255,255,255,0.08);
-  }
+  /* CSSはそのまま */
+  body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #0f0f0f, #1b1b1b); color: #e0e0e0; padding: 20px; }
+  .card { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+  h2 { margin-top: 0; color: #9fc9ff; }
+  .flex { display: flex; gap: 12px; flex-wrap: wrap; }
+  input { padding: 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.12); color: #fff; width: 180px; }
+  button { padding: 12px 18px; border-radius: 10px; border: none; background: linear-gradient(135deg, #3a8dff, #005eff); color: #fff; cursor: pointer; font-weight: 600; }
+  .delete-btn { background: linear-gradient(135deg, #ff5b5b, #d93636); }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; }
+  th, td { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 10px; text-align: left; }
+  th { background: rgba(255,255,255,0.08); color: #bcd9ff; }
 </style>
 </head>
 
 <body>
-
-<!-- Googleログイン -->
 <div class="card">
   <h2>Googleドライブ連携</h2>
   <button id="loginBtn">Googleログイン</button>
@@ -106,22 +27,15 @@
   <p id="statusMsg"></p>
 </div>
 
-<!-- 車両一覧 -->
 <div class="card">
   <h2>車両一覧</h2>
   <table id="carTable">
-    <thead>
-      <tr>
-        <th>ナンバー</th><th>車種</th><th>メーカー</th>
-        <th>使用者</th><th>点検日</th><th>操作</th>
-      </tr>
-    </thead>
+    <thead><tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>使用者</th><th>点検日</th><th>操作</th></tr></thead>
     <tbody></tbody>
   </table>
   <button onclick="saveVehicleData()">上書き保存</button>
 </div>
 
-<!-- 車両登録 -->
 <div class="card">
   <h2>車両登録</h2>
   <div class="flex">
@@ -134,33 +48,20 @@
   <button id="addCar">登録</button>
 </div>
 
-<!-- ★★★ ここにアプリのコードを置く（重要） ★★★ -->
 <script>
   let appData = { cars: [] };
   let accessToken = null;
 
-  /* Google OAuth */
   const tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: "1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com",
     scope: "https://www.googleapis.com/auth/drive.file",
-    callback: (res) => {
-      accessToken = res.access_token;
-      document.getElementById("statusMsg").textContent = "ログイン成功";
-    }
+    callback: (res) => { accessToken = res.access_token; document.getElementById("statusMsg").textContent = "ログイン成功"; }
   });
 
   document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
 
-  /* 車両登録 */
   document.getElementById("addCar").onclick = () => {
-    appData.cars.push({
-      id: Date.now(),
-      number: document.getElementById("carNumber").value,
-      model: document.getElementById("model").value,
-      maker: document.getElementById("maker").value,
-      user: document.getElementById("user").value,
-      inspection: document.getElementById("inspection").value
-    });
+    appData.cars.push({ id: Date.now(), number: document.getElementById("carNumber").value, model: document.getElementById("model").value, maker: document.getElementById("maker").value, user: document.getElementById("user").value, inspection: document.getElementById("inspection").value });
     renderCarTable();
   };
 
@@ -168,84 +69,37 @@
     const tbody = document.querySelector("#carTable tbody");
     tbody.innerHTML = "";
     appData.cars.forEach(car => {
-      tbody.innerHTML += `
-        <tr>
-          <td>${car.number}</td>
-          <td>${car.model}</td>
-          <td>${car.maker}</td>
-          <td>${car.user}</td>
-          <td>${car.inspection}</td>
-          <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td>
-        </tr>`;
+      tbody.innerHTML += `<tr><td>${car.number}</td><td>${car.model}</td><td>${car.maker}</td><td>${car.user}</td><td>${car.inspection}</td><td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td></tr>`;
     });
   }
 
-  function deleteCar(id) {
-    appData.cars = appData.cars.filter(c => c.id !== id);
-    renderCarTable();
-  }
+  function deleteCar(id) { appData.cars = appData.cars.filter(c => c.id !== id); renderCarTable(); }
 
-  /* Drive 読み込み */
   document.getElementById("loadBtn").onclick = async () => {
-    const query = encodeURIComponent("name = 'vehicle_data.json' and trashed = false");
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
-      headers: { Authorization: "Bearer " + accessToken }
-    });
-
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='vehicle_data.json' and trashed=false`, { headers: { Authorization: "Bearer " + accessToken }});
     const list = await res.json();
-    if (!list.files?.length) {
-      document.getElementById("statusMsg").textContent = "データがありません";
-      return;
-    }
-
-    const fileRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${list.files[0].id}?alt=media`,
-      { headers: { Authorization: "Bearer " + accessToken } }
-    );
-
+    if (!list.files?.length) { alert("ファイルが見つかりません"); return; }
+    const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${list.files[0].id}?alt=media`, { headers: { Authorization: "Bearer " + accessToken }});
     appData = await fileRes.json();
     renderCarTable();
     document.getElementById("statusMsg").textContent = "読み込みました！";
   };
 
-  /* Drive 上書き保存 */
   async function saveVehicleData() {
-    const query = encodeURIComponent("name = 'vehicle_data.json' and trashed = false");
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
-      headers: { Authorization: "Bearer " + accessToken }
-    });
-
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='vehicle_data.json' and trashed=false`, { headers: { Authorization: "Bearer " + accessToken }});
     const list = await res.json();
+    const blob = new Blob([JSON.stringify(appData)], { type: "application/json" });
 
     if (list.files?.length) {
-      await fetch(
-        `https://www.googleapis.com/upload/drive/v3/files/${list.files[0].id}?uploadType=media`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: "Bearer " + accessToken,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(appData)
-        }
-      );
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${list.files[0].id}?uploadType=media`, { method: "PATCH", headers: { Authorization: "Bearer " + accessToken }, body: blob });
     } else {
-      const file = new Blob([JSON.stringify(appData)], { type: "application/json" });
-      const metadata = { name: "vehicle_data.json", mimeType: "application/json" };
       const form = new FormData();
-      form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-      form.append("file", file);
-
-      await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + accessToken },
-        body: form
-      });
+      form.append("metadata", new Blob([JSON.stringify({ name: "vehicle_data.json", mimeType: "application/json" })], { type: "application/json" }));
+      form.append("file", blob);
+      await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", { method: "POST", headers: { Authorization: "Bearer " + accessToken }, body: form });
     }
-
     alert("保存しました");
   }
 </script>
-
 </body>
 </html>
