@@ -2,13 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>車両管理アプリ - 完全版</title>
+<title>車両管理アプリ - 完全復元版</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   body { font-family: 'Segoe UI', sans-serif; background: #1e1e1e; color: #e0e0e0; padding: 20px; }
   .card { background: #2a2a2a; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { border: 1px solid #444; padding: 10px; text-align: left; }
+  th, td { border: 1px solid #444; padding: 8px; text-align: left; }
+  th { background: #333; }
   input, button { padding: 8px; margin: 4px; border-radius: 4px; border: none; }
   button { background: #0078d4; color: #fff; cursor: pointer; }
   .delete-btn { background: #d9534f; }
@@ -26,7 +27,9 @@
 <div class="card">
   <h2>車両一覧</h2>
   <table id="carTable">
-    <thead><tr><th>ナンバー</th><th>車種</th><th>操作</th></tr></thead>
+    <thead>
+      <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>使用者</th><th>点検日</th><th>操作</th></tr>
+    </thead>
     <tbody></tbody>
   </table>
   <button onclick="saveVehicleData()">上書き保存</button>
@@ -36,6 +39,9 @@
   <h2>車両登録</h2>
   <input type="text" id="carNumber" placeholder="ナンバー">
   <input type="text" id="model" placeholder="車種">
+  <input type="text" id="maker" placeholder="メーカー">
+  <input type="text" id="user" placeholder="使用者">
+  <input type="date" id="inspection">
   <button id="addCar">登録</button>
 </div>
 
@@ -52,10 +58,14 @@
   document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
 
   document.getElementById("addCar").onclick = () => {
-    const number = document.getElementById("carNumber").value;
-    const model = document.getElementById("model").value;
-    if(!number) return;
-    appData.cars.push({ id: Date.now(), number, model });
+    appData.cars.push({
+      id: Date.now(),
+      number: document.getElementById("carNumber").value,
+      model: document.getElementById("model").value,
+      maker: document.getElementById("maker").value,
+      user: document.getElementById("user").value,
+      inspection: document.getElementById("inspection").value
+    });
     renderCarTable();
   };
 
@@ -63,7 +73,9 @@
     const tbody = document.querySelector("#carTable tbody");
     tbody.innerHTML = "";
     appData.cars.forEach(car => {
-      tbody.innerHTML += `<tr><td>${car.number}</td><td>${car.model}</td>
+      tbody.innerHTML += `<tr>
+        <td>${car.number}</td><td>${car.model}</td><td>${car.maker}</td>
+        <td>${car.user}</td><td>${car.inspection}</td>
         <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td></tr>`;
     });
   }
