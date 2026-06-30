@@ -15,6 +15,8 @@
   input { background: #3a3a3a; color: #fff; width: 250px; }
   button { background: #0078d4; color: #fff; cursor: pointer; font-weight: 600; }
   button:hover { background: #0a84ff; }
+  button.delete-btn { background: #d9534f; } /* 削除ボタンを赤色に */
+  button.delete-btn:hover { background: #c9302c; }
   .status { font-size: 0.9em; margin-top: 6px; color: #9cdcfe; }
 </style>
 </head>
@@ -23,19 +25,17 @@
 <div class="container">
   <h1>車両管理アプリ + Googleドライブ保存</h1>
 
-  <!-- Googleログイン -->
   <div class="card">
     <h2>Googleドライブ連携</h2>
     <button id="loginBtn">Googleログイン</button>
     <p id="loginStatus" class="status"></p>
   </div>
 
-  <!-- 車両一覧 -->
   <div class="card">
     <h2>車両一覧</h2>
     <table id="carTable">
       <thead>
-        <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>主な使用者</th><th>点検日</th><th>選択</th></tr>
+        <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>主な使用者</th><th>点検日</th><th>操作</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -43,7 +43,6 @@
     <p id="saveStatus" class="status"></p>
   </div>
 
-  <!-- 車両登録 -->
   <div class="card">
     <h2>車両登録</h2>
     <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
@@ -57,11 +56,9 @@
 
 <script>
   let appData = { cars: [] };
-  let currentCarNumber = null;
   let tokenClient;
   let accessToken = null;
 
-  // Google Identity Services 初期化
   window.onload = function () {
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
@@ -74,12 +71,12 @@
     document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
   };
 
-  // 車両登録機能
   document.getElementById("addCar").addEventListener("click", () => {
     const number = document.getElementById("carNumber").value.trim();
     const model = document.getElementById("model").value.trim();
     if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
     appData.cars.push({
+      id: Date.now(), // 削除用にIDを追加
       number, model, 
       maker: document.getElementById("maker").value, 
       user: document.getElementById("user").value, 
@@ -88,17 +85,25 @@
     renderCarTable();
   });
 
+  // 車両削除機能
+  function deleteCar(id) {
+    appData.cars = appData.cars.filter(car => car.id !== id);
+    renderCarTable();
+  }
+
   function renderCarTable() {
     const tbody = document.querySelector("#carTable tbody");
     tbody.innerHTML = "";
     appData.cars.forEach(car => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${car.number}</td><td>${car.model}</td><td>${car.maker}</td><td>${car.user}</td><td>${car.inspection}</td><td>選択</td>`;
+      tr.innerHTML = `
+        <td>${car.number}</td><td>${car.model}</td><td>${car.maker}</td><td>${car.user}</td><td>${car.inspection}</td>
+        <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td>
+      `;
       tbody.appendChild(tr);
     });
   }
 
-  // 保存機能
   async function saveVehicleData() {
     if (!accessToken) { alert("先にログインしてください"); return; }
     const file = new Blob([JSON.stringify(appData)], { type: "application/json" });
