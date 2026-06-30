@@ -7,77 +7,46 @@
 <style>
   body { font-family: 'Segoe UI', sans-serif; background: #0a0e14; color: #e0e0e0; padding: 20px; }
   .card { background: #151b23; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #333; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { border: 1px solid #444; padding: 12px; text-align: left; }
-  th { background: #252d38; color: #9fc9ff; }
   button { padding: 10px 20px; cursor: pointer; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-weight: 600; }
-  .delete-btn { background: #ef4444; }
-  input { padding: 10px; border-radius: 6px; border: 1px solid #333; background: #1a222e; color: white; margin-right: 5px; }
+  button:disabled { background: #555; cursor: not-allowed; }
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>状態: <span id="statusMsg">初期化中...</span></h2>
-  <button id="loginBtn">1. Googleログイン</button>
-  <button id="loadBtn">2. データ読み込み</button>
-</div>
-
-<div class="card">
-  <h2>車両一覧</h2>
-  <table id="carTable">
-    <thead><tr><th>ナンバー</th><th>車種</th><th>操作</th></tr></thead>
-    <tbody></tbody>
-  </table>
-  <button onclick="saveVehicleData()">3. 上書き保存</button>
+  <h2>状態: <span id="statusMsg">Googleライブラリ読み込み中...</span></h2>
+  <!-- 最初はボタンを無効化（disabled）しておく -->
+  <button id="loginBtn" disabled>1. Googleログイン</button>
+  <button id="loadBtn" disabled>2. データ読み込み</button>
 </div>
 
 <script>
-  let appData = { cars: [] };
   let accessToken = null;
   let tokenClient;
 
+  // ライブラリの読み込みが終わるのを待ってから初期化
   window.onload = () => {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
-      scope: 'https://www.googleapis.com/auth/drive.file',
-      callback: (res) => {
-        accessToken = res.access_token;
-        document.getElementById("statusMsg").innerText = "ログイン完了";
-      }
-    });
-    document.getElementById("statusMsg").innerText = "準備完了";
-  };
-
-  document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
-
-  document.getElementById("loadBtn").onclick = async () => {
-    if (!accessToken) { alert("ログインしてください"); return; }
     try {
-      const res = await fetch("https://www.googleapis.com/drive/v3/files?q=name='vehicle_data.json' and trashed=false", {
-        headers: { Authorization: "Bearer " + accessToken }
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: (res) => {
+          accessToken = res.access_token;
+          document.getElementById("statusMsg").innerText = "ログイン成功！";
+        }
       });
-      const list = await res.json();
-      if (!list.files?.length) { document.getElementById("statusMsg").innerText = "ファイルが見つかりません"; return; }
-      
-      const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${list.files[0].id}?alt=media`, {
-        headers: { Authorization: "Bearer " + accessToken }
-      });
-      appData = await fileRes.json();
-      
-      const tbody = document.querySelector("#carTable tbody");
-      tbody.innerHTML = "";
-      appData.cars.forEach(car => {
-        tbody.innerHTML += `<tr><td>${car.number}</td><td>${car.model}</td><td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td></tr>`;
-      });
-      document.getElementById("statusMsg").innerText = "読み込み完了";
-    } catch (e) { document.getElementById("statusMsg").innerText = "エラー: " + e.message; }
+      // 準備完了！ボタンを有効にする
+      document.getElementById("loginBtn").disabled = false;
+      document.getElementById("loadBtn").disabled = false;
+      document.getElementById("statusMsg").innerText = "準備完了";
+    } catch (e) {
+      document.getElementById("statusMsg").innerText = "初期化エラー: " + e.message;
+    }
   };
 
-  async function saveVehicleData() {
-    // 既存の保存ロジック（省略）
-    alert("保存機能は後ほど統合しましょう。まずは読み込みが動くか試してね！");
-  }
+  document.getElementById("loginBtn").onclick = () => {
+    if (tokenClient) tokenClient.requestAccessToken();
+  };
 </script>
 </body>
 </html>
