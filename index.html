@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>車両管理アプリ</title>
+<title>車両管理アプリ + Googleドライブ保存</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #1e1e1e; color: #e0e0e0; }
@@ -15,7 +15,7 @@
   input { background: #3a3a3a; color: #fff; width: 250px; }
   button { background: #0078d4; color: #fff; cursor: pointer; font-weight: 600; }
   button:hover { background: #0a84ff; }
-  button.delete-btn { background: #d9534f; }
+  button.delete-btn { background: #d9534f; } /* 削除ボタンを赤色に */
   button.delete-btn:hover { background: #c9302c; }
   .status { font-size: 0.9em; margin-top: 6px; color: #9cdcfe; }
 </style>
@@ -23,21 +23,19 @@
 <body>
 
 <div class="container">
-  <h1>車両管理アプリ</h1>
+  <h1>車両管理アプリ + Googleドライブ保存</h1>
 
   <div class="card">
     <h2>Googleドライブ連携</h2>
     <button id="loginBtn">Googleログイン</button>
-    <button id="loadBtn">データ読み込む</button>
     <p id="loginStatus" class="status"></p>
-    <p id="loadStatus" class="status"></p>
   </div>
 
   <div class="card">
     <h2>車両一覧</h2>
     <table id="carTable">
       <thead>
-        <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>主な使用者</th><th>点検日</th><th>備考</th></tr>
+        <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>主な使用者</th><th>点検日</th><th>操作</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -52,7 +50,6 @@
     <label>メーカー：<br><input type="text" id="maker"></label><br>
     <label>主な使用者：<br><input type="text" id="user"></label><br>
     <label>点検日：<br><input type="date" id="inspection"></label><br>
-    <label>備考：<br><input type="text" id="note"></label><br>
     <button id="addCar">車両を登録</button>
   </div>
 </div>
@@ -78,19 +75,21 @@
     const number = document.getElementById("carNumber").value.trim();
     const model = document.getElementById("model").value.trim();
     if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
-
     appData.cars.push({
-      id: Date.now(),
-      number,
-      model,
-      maker: document.getElementById("maker").value,
-      user: document.getElementById("user").value,
-      inspection: document.getElementById("inspection").value,
-      note: document.getElementById("note").value
+      id: Date.now(), // 削除用にIDを追加
+      number, model, 
+      maker: document.getElementById("maker").value, 
+      user: document.getElementById("user").value, 
+      inspection: document.getElementById("inspection").value
     });
-
     renderCarTable();
   });
+
+  // 車両削除機能
+  function deleteCar(id) {
+    appData.cars = appData.cars.filter(car => car.id !== id);
+    renderCarTable();
+  }
 
   function renderCarTable() {
     const tbody = document.querySelector("#carTable tbody");
@@ -98,12 +97,8 @@
     appData.cars.forEach(car => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${car.number}</td>
-        <td>${car.model}</td>
-        <td>${car.maker}</td>
-        <td>${car.user}</td>
-        <td>${car.inspection}</td>
-        <td>${car.note ?? ""}</td>
+        <td>${car.number}</td><td>${car.model}</td><td>${car.maker}</td><td>${car.user}</td><td>${car.inspection}</td>
+        <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td>
       `;
       tbody.appendChild(tr);
     });
@@ -125,38 +120,6 @@
     const result = await res.json();
     document.getElementById("saveStatus").textContent = "保存完了 (ID: " + result.id + ")";
   }
-
-  /* ★★★ Google Drive から vehicle_data.json を読み込む機能 ★★★ */
-  document.getElementById("loadBtn").onclick = async () => {
-    if (!accessToken) { alert("先にログインしてください"); return; }
-
-    document.getElementById("loadStatus").textContent = "読み込み中…";
-
-    // vehicle_data.json を検索
-    const query = encodeURIComponent("name = 'vehicle_data.json' and trashed = false");
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
-      headers: { Authorization: "Bearer " + accessToken }
-    });
-    const list = await res.json();
-
-    if (!list.files || list.files.length === 0) {
-      document.getElementById("loadStatus").textContent = "vehicle_data.json が見つかりません";
-      return;
-    }
-
-    const fileId = list.files[0].id;
-
-    // ファイル内容を取得
-    const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      headers: { Authorization: "Bearer " + accessToken }
-    });
-
-    const data = await fileRes.json();
-    appData = data;
-
-    renderCarTable();
-    document.getElementById("loadStatus").textContent = "読み込み完了！";
-  };
 </script>
 </body>
 </html>
