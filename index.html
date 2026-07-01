@@ -28,14 +28,15 @@
   <div class="card">
     <h2>Googleドライブ連携</h2>
     <button id="loginBtn">Googleログイン</button>
+    <button id="loadBtn">データ読み込む</button>
     <p id="loginStatus" class="status"></p>
+    <p id="loadStatus" class="status"></p>
   </div>
 
   <div class="card">
     <h2>車両一覧</h2>
     <table id="carTable">
       <thead>
-        <!-- ★ 操作 → 備考 に変更 ★ -->
         <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>主な使用者</th><th>点検日</th><th>備考</th></tr>
       </thead>
       <tbody></tbody>
@@ -51,10 +52,7 @@
     <label>メーカー：<br><input type="text" id="maker"></label><br>
     <label>主な使用者：<br><input type="text" id="user"></label><br>
     <label>点検日：<br><input type="date" id="inspection"></label><br>
-
-    <!-- ★ 点検日の下に備考を追加 ★ -->
     <label>備考：<br><input type="text" id="note"></label><br>
-
     <button id="addCar">車両を登録</button>
   </div>
 </div>
@@ -88,26 +86,17 @@
       maker: document.getElementById("maker").value,
       user: document.getElementById("user").value,
       inspection: document.getElementById("inspection").value,
-
-      /* ★ 備考を追加 ★ */
       note: document.getElementById("note").value
     });
 
     renderCarTable();
   });
 
-  function deleteCar(id) {
-    appData.cars = appData.cars.filter(car => car.id !== id);
-    renderCarTable();
-  }
-
   function renderCarTable() {
     const tbody = document.querySelector("#carTable tbody");
     tbody.innerHTML = "";
     appData.cars.forEach(car => {
       const tr = document.createElement("tr");
-
-      /* ★ 操作ボタン → 備考表示に変更 ★ */
       tr.innerHTML = `
         <td>${car.number}</td>
         <td>${car.model}</td>
@@ -136,6 +125,38 @@
     const result = await res.json();
     document.getElementById("saveStatus").textContent = "保存完了 (ID: " + result.id + ")";
   }
+
+  /* ★★★ Google Drive から vehicle_data.json を読み込む機能 ★★★ */
+  document.getElementById("loadBtn").onclick = async () => {
+    if (!accessToken) { alert("先にログインしてください"); return; }
+
+    document.getElementById("loadStatus").textContent = "読み込み中…";
+
+    // vehicle_data.json を検索
+    const query = encodeURIComponent("name = 'vehicle_data.json' and trashed = false");
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
+      headers: { Authorization: "Bearer " + accessToken }
+    });
+    const list = await res.json();
+
+    if (!list.files || list.files.length === 0) {
+      document.getElementById("loadStatus").textContent = "vehicle_data.json が見つかりません";
+      return;
+    }
+
+    const fileId = list.files[0].id;
+
+    // ファイル内容を取得
+    const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: "Bearer " + accessToken }
+    });
+
+    const data = await fileRes.json();
+    appData = data;
+
+    renderCarTable();
+    document.getElementById("loadStatus").textContent = "読み込み完了！";
+  };
 </script>
 </body>
 </html>
