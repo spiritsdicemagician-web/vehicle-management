@@ -142,9 +142,9 @@
     flex: 1;
   }
 
-  /* 詳細モーダル用スタイル */
+  /* 詳細ポップアップ（モーダル）用スタイル */
   .modal-overlay {
-    display: none;
+    display: none; /* 初期状態は非表示 */
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.7);
@@ -252,6 +252,7 @@
       <label>車種：<br><input type="text" id="model"></label><br>
       <label>メーカー：<br><input type="text" id="maker"></label><br>
       <label>使用者：<br><input type="text" id="user"></label><br>
+      <!-- 日付の上に項目名を明記 -->
       <label>車検日：<br><input type="date" id="inspection2"></label><br>
       <label>点検日：<br><input type="date" id="inspection"></label><br>
       <label>備考：<br><input type="text" id="note"></label><br>
@@ -275,7 +276,7 @@
 
 </div>
 
-<!-- 詳細・過去の履歴用モーダル -->
+<!-- 詳細・過去の履歴用ポップアップ（モーダル） -->
 <div class="modal-overlay" id="detailModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -286,7 +287,7 @@
     <h4>新しい履歴を追加</h4>
     <div class="history-form">
       <label>点検日:<br><input type="date" id="histDate"></label><br>
-      <label>各種検査内容:<br><textarea id="histContent" placeholder="例: 法定2年点検、エンジンオイル交換、ブレーキパッド残量チェックなど"></textarea></label><br>
+      <label>各種検査内容:<br><textarea id="histContent" placeholder="例: 法定2年点検、オイル交換など"></textarea></label><br>
       <button onclick="addHistoryRecord()">履歴を保存</button>
     </div>
 
@@ -307,7 +308,8 @@
   let appData = { cars: [] };
   let tokenClient;
   let accessToken = null;
-  let currentDetailCarId = null; // 現在詳細を開いている車両のID
+  let currentDetailCarId = null; 
+  let editingCarId = null; // 編集中の車両IDを追跡
 
   window.onload = function () {
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -320,7 +322,7 @@
     });
     document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
 
-    // 時計のリアルタイム更新スタート
+    // 時計の更新スタート
     startClock();
   };
 
@@ -340,23 +342,40 @@
     setInterval(updateClock, 1000);
   }
 
-  /* 車両登録 */
+  /* 車両登録・更新ボタンのイベント */
   document.getElementById("addCar").addEventListener("click", () => {
     const number = document.getElementById("carNumber").value.trim();
     const model = document.getElementById("model").value.trim();
     if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
 
-    appData.cars.push({
-      id: Date.now(),
-      number,
-      model,
-      maker: document.getElementById("maker").value,
-      user: document.getElementById("user").value,
-      inspection2: document.getElementById("inspection2").value, // 車検日
-      inspection: document.getElementById("inspection").value,   // 点検日
-      note: document.getElementById("note").value,
-      history: [] // 過去の履歴を格納する配列を初期化
-    });
+    if (editingCarId !== null) {
+      // 編集モードの場合：該当の車両データを更新する（元の配列構造や履歴を引き継ぐ）
+      const car = appData.cars.find(c => c.id === editingCarId);
+      if (car) {
+        car.number = number;
+        car.model = model;
+        car.maker = document.getElementById("maker").value;
+        car.user = document.getElementById("user").value;
+        car.inspection2 = document.getElementById("inspection2").value;
+        car.inspection = document.getElementById("inspection").value;
+        car.note = document.getElementById("note").value;
+      }
+      editingCarId = null;
+      document.getElementById("addCar").textContent = "登録する";
+    } else {
+      // 新規登録モードの場合
+      appData.cars.push({
+        id: Date.now(),
+        number,
+        model,
+        maker: document.getElementById("maker").value,
+        user: document.getElementById("user").value,
+        inspection2: document.getElementById("inspection2").value, 
+        inspection: document.getElementById("inspection").value,   
+        note: document.getElementById("note").value,
+        history: [] 
+      });
+    }
 
     renderCarTable();
     updateStats();
@@ -374,11 +393,12 @@
     document.getElementById("note").value = "";
   }
 
-  /* 編集機能（簡易版） */
+  /* 編集機能 */
   function editCar(id) {
     const car = appData.cars.find(c => c.id === id);
     if (!car) return;
 
+    // フォームに値をセット
     document.getElementById("carNumber").value = car.number;
     document.getElementById("model").value = car.model;
     document.getElementById("maker").value = car.maker;
@@ -387,76 +407,24 @@
     document.getElementById("inspection").value = car.inspection;
     document.getElementById("note").value = car.note;
 
-    // 編集時は一度リストから除外して再登録させる元の仕様を維持
-    // (必要に応じて既存の履歴を引き継ぐため、履歴データを一時退避させて登録時に結合するなどの調整も可能ですが、ベースコードの挙動を維持しています)
-    const savedHistory = car.history ?? [];
-    
-    // 登録ボタンを押した時に履歴が消えないよう、一時的に一工夫加える仕様にします
-    appData.cars = appData.cars.filter(c => c.id !== id);
-    
-    // 次回の登録時にこの履歴を引き継げるように、addCarをラップするか、簡易的にその場で処理
-    document.getElementById("addCar").onclick = function wrapper() {
-      const number = document.getElementById("carNumber").value.trim();
-      const model = document.getElementById("model").value.trim();
-      if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
-      
-      appData.cars.push({
-        id: Date.now(),
-        number,
-        model,
-        maker: document.getElementById("maker").value,
-        user: document.getElementById("user").value,
-        inspection2: document.getElementById("inspection2").value,
-        inspection: document.getElementById("inspection").value,
-        note: document.getElementById("note").value,
-        history: savedHistory
-      });
-      renderCarTable();
-      updateStats();
-      clearForm();
-      // 元のイベントリスナーに戻す
-      document.getElementById("addCar").removeEventListener("click", wrapper);
-      setupOriginalAddEvent();
-    };
-
-    renderCarTable();
-    updateStats();
-  }
-
-  function setupOriginalAddEvent() {
-    // 既存のイベントを一度クリアして再設定するための仕組み
-    const oldBtn = document.getElementById("addCar");
-    const newBtn = oldBtn.cloneNode(true);
-    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
-    newBtn.addEventListener("click", () => {
-      const number = document.getElementById("carNumber").value.trim();
-      const model = document.getElementById("model").value.trim();
-      if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
-      appData.cars.push({
-        id: Date.now(),
-        number,
-        model,
-        maker: document.getElementById("maker").value,
-        user: document.getElementById("user").value,
-        inspection2: document.getElementById("inspection2").value,
-        inspection: document.getElementById("inspection").value,
-        note: document.getElementById("note").value,
-        history: []
-      });
-      renderCarTable();
-      updateStats();
-      clearForm();
-    });
+    // 編集モード状態にする
+    editingCarId = id;
+    document.getElementById("addCar").textContent = "更新する";
   }
 
   /* 削除機能 */
   function deleteCar(id) {
+    if(editingCarId === id) {
+      editingCarId = null;
+      document.getElementById("addCar").textContent = "登録する";
+      clearForm();
+    }
     appData.cars = appData.cars.filter(car => car.id !== id);
     renderCarTable();
     updateStats();
   }
 
-  /* 詳細モーダルを開く */
+  /* 詳細ポップアップ（モーダル）を開く */
   function openDetail(id) {
     currentDetailCarId = id;
     const car = appData.cars.find(c => c.id === id);
@@ -469,7 +437,7 @@
     document.getElementById("histContent").value = "";
     
     renderHistoryTable(car.history);
-    document.getElementById("detailModal").style.display = "flex";
+    document.getElementById("detailModal").style.display = "flex"; // 画面中央にポップアップ表示
   }
 
   /* モーダルを閉じる */
@@ -486,7 +454,6 @@
       tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;color:#8b949e;">履歴がありません</td></tr>`;
       return;
     }
-    // 日付の新しい順に表示
     const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
     sortedHistory.forEach(item => {
       const tr = document.createElement("tr");
@@ -543,20 +510,19 @@
 
     const today = new Date();
     const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth(); // 0 = 1月, 11 = 12月
+    const currentMonth = today.getMonth(); 
     
     let upcoming = 0;
 
     appData.cars.forEach(car => {
-      if (!car.inspection2) return; // 車検日の入力がない場合はスキップ
+      if (!car.inspection2) return; 
       
       const inspection2Date = new Date(car.inspection2);
       
-      // 車検日からちょうど2年後（24ヶ月後）の年月を計算
+      // 車検日のちょうど2年後（24ヶ月後）の年月を算出
       const targetYear = inspection2Date.getFullYear() + 2;
       const targetMonth = inspection2Date.getMonth();
 
-      // 現在の年月が、車検日の2年後の年月と一致するか判定
       if (currentYear === targetYear && currentMonth === targetMonth) {
         upcoming++;
       }
@@ -597,7 +563,7 @@
     const list = await res.json();
 
     if (!list.files || list.files.length === 0) {
-      document.getElementById("loadStatus").textContent = "vehicle_data.json が見見つかりません";
+      document.getElementById("loadStatus").textContent = "vehicle_data.json が見つかりません";
       return;
     }
 
@@ -610,7 +576,6 @@
     const data = await fileRes.json();
     appData = data;
 
-    // 各車両データに歴史配列がない場合のフォールバックを確保
     appData.cars.forEach(car => {
       if (!car.history) car.history = [];
     });
