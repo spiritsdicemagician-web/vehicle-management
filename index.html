@@ -5,24 +5,21 @@
 <title>CAR MANAGER</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-  body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; }
-  .container { max-width: 1100px; margin: auto; padding: 24px; }
+  body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; padding: 20px; }
+  .container { max-width: 1100px; margin: auto; }
   .logo { font-size: 32px; font-weight: bold; color: #58a6ff; text-align: center; margin-bottom: 20px; }
   .header-info { text-align: right; color: #8b949e; margin-bottom: 10px; }
-  .card { background: #161b22; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.4); }
-  .card h2 { margin-top: 0; color: #58a6ff; }
-  .stats { display: flex; gap: 20px; }
-  .stat-box { flex: 1; background: #21262d; padding: 20px; border-radius: 10px; text-align: center; }
+  .card { background: #161b22; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #333; }
+  .status { font-size: 0.9em; color: #9cdcfe; margin: 5px 0; }
   table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-  th, td { border-bottom: 1px solid #30363d; padding: 10px; }
+  th, td { border-bottom: 1px solid #30363d; padding: 10px; text-align: left; }
   th { background: #21262d; }
-  input, button { padding: 10px; margin-top: 6px; border-radius: 6px; border: none; }
-  input { background: #21262d; color: #fff; width: 260px; }
-  button { background: #238636; color: #fff; cursor: pointer; font-weight: 600; margin-right: 5px; }
-  .edit-btn { background: #0078d4; }
+  button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 6px; color: #fff; font-weight: 600; margin: 5px; }
+  .btn-primary { background: #238636; }
+  .btn-drive { background: #3b82f6; }
   .delete-btn { background: #d9534f; }
   .detail-btn { background: #8250df; }
-  /* モーダル */
+  input { padding: 10px; margin: 5px; border-radius: 6px; border: 1px solid #333; background: #21262d; color: white; }
   .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); }
   .modal-content { background: #161b22; margin: 10% auto; padding: 20px; width: 50%; border-radius: 10px; }
 </style>
@@ -33,19 +30,20 @@
   <div class="logo">CAR MANAGER</div>
   <div class="header-info" id="currentDateTime"></div>
 
+  <!-- ドライブ連携セクション（復活） -->
   <div class="card">
-    <h2>ダッシュボード</h2>
-    <div class="stats">
-      <div class="stat-box"><h3>🚗 登録車両数</h3><p id="statTotal">0台</p></div>
-      <div class="stat-box"><h3>今月の点検予定</h3><p id="statUpcoming">0台</p></div>
-    </div>
+    <h2>Googleドライブ連携</h2>
+    <button id="loginBtn" class="btn-drive">Googleログイン</button>
+    <button id="loadBtn" class="btn-drive">データを読み込む</button>
+    <button onclick="saveVehicleData()" class="btn-drive">Googleドライブに保存</button>
+    <p id="statusMsg" class="status">準備完了</p>
   </div>
 
   <div class="card">
     <h2>車両一覧</h2>
     <table id="carTable">
       <thead>
-        <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>使用者</th><th>車検日</th><th>点検日</th><th>備考</th><th>詳細</th><th>編集</th><th>削除</th></tr>
+        <tr><th>ナンバー</th><th>車種</th><th>車検日</th><th>点検日</th><th>詳細</th><th>削除</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -55,13 +53,12 @@
     <h2>車両登録</h2>
     <input type="text" id="carNumber" placeholder="ナンバー">
     <input type="text" id="model" placeholder="車種">
-    <input type="date" id="inspection"> <!-- 直近の点検日 -->
-    <input type="date" id="shaken"> <!-- 車検日 -->
-    <button id="addCar">登録する</button>
+    <input type="date" id="shaken" placeholder="車検日">
+    <input type="date" id="inspection" placeholder="点検日">
+    <button id="addCar" class="btn-primary">登録する</button>
   </div>
 </div>
 
-<!-- 詳細履歴用モーダル -->
 <div id="detailModal" class="modal">
   <div class="modal-content">
     <h2>整備履歴</h2>
@@ -72,30 +69,26 @@
 
 <script>
   let appData = { cars: [] };
-  
-  // 日時更新
-  function updateDateTime() {
-    document.getElementById("currentDateTime").textContent = new Date().toLocaleString('ja-JP');
-  }
+  let accessToken = null;
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: (res) => { accessToken = res.access_token; document.getElementById("statusMsg").textContent = "ログイン成功"; }
+  });
+
+  document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
+
+  function updateDateTime() { document.getElementById("currentDateTime").textContent = new Date().toLocaleString('ja-JP'); }
   setInterval(updateDateTime, 1000);
   updateDateTime();
 
-  // 履歴表示用
-  function showDetails(id) {
-    const car = appData.cars.find(c => c.id === id);
-    const list = document.getElementById("historyList");
-    list.innerHTML = `<p>車両: ${car.number}</p><p>最終点検日: ${car.inspection}</p><h4>過去の検査内容</h4><p>データなし</p>`;
-    document.getElementById("detailModal").style.display = 'block';
-  }
-
-  // 車両登録（追加ロジックは既存のものを拡張）
   document.getElementById("addCar").onclick = () => {
     appData.cars.push({
       id: Date.now(),
       number: document.getElementById("carNumber").value,
       model: document.getElementById("model").value,
-      inspection: document.getElementById("inspection").value,
       shaken: document.getElementById("shaken").value,
+      inspection: document.getElementById("inspection").value,
       history: []
     });
     renderCarTable();
@@ -106,18 +99,33 @@
     tbody.innerHTML = "";
     appData.cars.forEach(car => {
       tbody.innerHTML += `<tr>
-        <td>${car.number}</td><td>${car.model}</td><td>-</td><td>-</td>
-        <td>${car.shaken}</td><td>${car.inspection}</td><td>-</td>
+        <td>${car.number}</td><td>${car.model}</td><td>${car.shaken}</td><td>${car.inspection}</td>
         <td><button class="detail-btn" onclick="showDetails(${car.id})">詳細</button></td>
-        <td><button class="edit-btn">編集</button></td>
         <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td>
       </tr>`;
     });
   }
 
-  function deleteCar(id) {
-    appData.cars = appData.cars.filter(c => c.id !== id);
-    renderCarTable();
+  function deleteCar(id) { appData.cars = appData.cars.filter(c => c.id !== id); renderCarTable(); }
+
+  document.getElementById("loadBtn").onclick = async () => {
+    const res = await fetch("https://www.googleapis.com/drive/v3/files?q=name='vehicle_data.json'", { headers: { Authorization: "Bearer " + accessToken }});
+    const list = await res.json();
+    if (list.files?.length) {
+      const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${list.files[0].id}?alt=media`, { headers: { Authorization: "Bearer " + accessToken }});
+      appData = await fileRes.json();
+      renderCarTable();
+      document.getElementById("statusMsg").textContent = "読み込み完了";
+    }
+  };
+
+  async function saveVehicleData() {
+    const blob = new Blob([JSON.stringify(appData)], { type: "application/json" });
+    const form = new FormData();
+    form.append("metadata", new Blob([JSON.stringify({ name: "vehicle_data.json" })], { type: "application/json" }));
+    form.append("file", blob);
+    await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", { method: "POST", headers: { Authorization: "Bearer " + accessToken }, body: form });
+    alert("保存しました");
   }
 </script>
 </body>
