@@ -33,7 +33,7 @@
   }
 
   .current-time {
-    font-size: 16px;
+    font-size: 14px;
     color: #8b949e;
     background: #161b22;
     padding: 8px 16px;
@@ -63,7 +63,29 @@
     background: #21262d;
     padding: 20px;
     border-radius: 10px;
-    text-align: center;
+  }
+  .stat-box h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 16px;
+    color: #c9d1d9;
+  }
+  
+  /* アイコンを数値の左に配置し、2倍サイズにするためのコンテナ */
+  .stat-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .stat-icon {
+    font-size: 48px; /* 数値フォント(24px)の2倍サイズ */
+    line-height: 1;
+  }
+  .stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
   }
 
   table {
@@ -129,8 +151,14 @@
 
   .status {
     font-size: 0.9em;
-    margin-top: 6px;
+    margin-top: 4px;
+    margin-bottom: 16px;
     color: #9cdcfe;
+  }
+  
+  /* 最後のステータス要素の下マージンを調整 */
+  .status:last-child {
+    margin-bottom: 0;
   }
 
   /* 車両登録とドライブ連携を横並びにする */
@@ -144,7 +172,7 @@
 
   /* 詳細ポップアップ（モーダル）用スタイル */
   .modal-overlay {
-    display: none; /* 初期状態は非表示 */
+    display: none;
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.7);
@@ -200,8 +228,8 @@
 
   <div class="header-wrap">
     <div class="logo">CAR MANAGER</div>
-    <!-- 右側に今の日付と時間を記入 -->
-    <div class="current-time" id="clock">----/--/-- --:--:--</div>
+    <!-- 保存を押した時間を表示する領域 -->
+    <div class="current-time">最終保存日時: <span id="clock">----/--/-- --:--:--</span></div>
   </div>
 
   <!-- ダッシュボード -->
@@ -209,13 +237,20 @@
     <h2>ダッシュボード</h2>
     <div class="stats">
       <div class="stat-box">
-        <!-- 登録車両数の横に車のアイコン -->
-        <h3>登録車両数 🚗</h3>
-        <p id="statTotal">0台</p>
+        <h3>登録車両数</h3>
+        <div class="stat-content">
+          <!-- 文字の左側に2倍サイズの車アイコン -->
+          <span class="stat-icon">🚗</span>
+          <p id="statTotal" class="stat-number">0台</p>
+        </div>
       </div>
       <div class="stat-box">
-        <h3>今月の点検予定</h3>
-        <p id="statUpcoming">0台</p>
+        <h3>今月の車検予定</h3>
+        <div class="stat-content">
+          <!-- 文字の左側に2倍サイズの書類アイコン -->
+          <span class="stat-icon">📄</span>
+          <p id="statUpcoming" class="stat-number">0台</p>
+        </div>
       </div>
     </div>
   </div>
@@ -252,7 +287,6 @@
       <label>車種：<br><input type="text" id="model"></label><br>
       <label>メーカー：<br><input type="text" id="maker"></label><br>
       <label>使用者：<br><input type="text" id="user"></label><br>
-      <!-- 日付の上に項目名を明記 -->
       <label>車検日：<br><input type="date" id="inspection2"></label><br>
       <label>点検日：<br><input type="date" id="inspection"></label><br>
       <label>備考：<br><input type="text" id="note"></label><br>
@@ -265,11 +299,12 @@
       <button id="loginBtn">Googleログイン</button>
       <p id="loginStatus" class="status"></p>
 
-      <button onclick="saveVehicleData()">Googleドライブに保存</button>
-      <p id="saveStatus" class="status"></p>
-
+      <!-- 位置を逆に入れ替え（読み込みを上に、保存を下に） -->
       <button id="loadBtn">Googleドライブから読み込む</button>
       <p id="loadStatus" class="status"></p>
+
+      <button onclick="saveVehicleData()">Googleドライブに保存</button>
+      <p id="saveStatus" class="status"></p>
     </div>
 
   </div>
@@ -309,7 +344,7 @@
   let tokenClient;
   let accessToken = null;
   let currentDetailCarId = null; 
-  let editingCarId = null; // 編集中の車両IDを追跡
+  let editingCarId = null; 
 
   window.onload = function () {
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -321,25 +356,18 @@
       },
     });
     document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
-
-    // 時計の更新スタート
-    startClock();
   };
 
-  /* リアルタイム時計機能 */
-  function startClock() {
-    const updateClock = () => {
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const hh = String(now.getHours()).padStart(2, '0');
-      const min = String(now.getMinutes()).padStart(2, '0');
-      const ss = String(now.getSeconds()).padStart(2, '0');
-      document.getElementById("clock").textContent = `${yyyy}/${mm}/${dd} ${hh}:${min}:${ss}`;
-    };
-    updateClock();
-    setInterval(updateClock, 1000);
+  /* 保存完了時に日時を更新する関数 */
+  function updateSaveTime() {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById("clock").textContent = `${yyyy}/${mm}/${dd} ${hh}:${min}:${ss}`;
   }
 
   /* 車両登録・更新ボタンのイベント */
@@ -349,7 +377,6 @@
     if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
 
     if (editingCarId !== null) {
-      // 編集モードの場合：該当の車両データを更新する（元の配列構造や履歴を引き継ぐ）
       const car = appData.cars.find(c => c.id === editingCarId);
       if (car) {
         car.number = number;
@@ -363,7 +390,6 @@
       editingCarId = null;
       document.getElementById("addCar").textContent = "登録する";
     } else {
-      // 新規登録モードの場合
       appData.cars.push({
         id: Date.now(),
         number,
@@ -398,7 +424,6 @@
     const car = appData.cars.find(c => c.id === id);
     if (!car) return;
 
-    // フォームに値をセット
     document.getElementById("carNumber").value = car.number;
     document.getElementById("model").value = car.model;
     document.getElementById("maker").value = car.maker;
@@ -407,7 +432,6 @@
     document.getElementById("inspection").value = car.inspection;
     document.getElementById("note").value = car.note;
 
-    // 編集モード状態にする
     editingCarId = id;
     document.getElementById("addCar").textContent = "更新する";
   }
@@ -437,7 +461,7 @@
     document.getElementById("histContent").value = "";
     
     renderHistoryTable(car.history);
-    document.getElementById("detailModal").style.display = "flex"; // 画面中央にポップアップ表示
+    document.getElementById("detailModal").style.display = "flex"; 
   }
 
   /* モーダルを閉じる */
@@ -519,7 +543,6 @@
       
       const inspection2Date = new Date(car.inspection2);
       
-      // 車検日のちょうど2年後（24ヶ月後）の年月を算出
       const targetYear = inspection2Date.getFullYear() + 2;
       const targetMonth = inspection2Date.getMonth();
 
@@ -548,6 +571,9 @@
     });
     const result = await res.json();
     document.getElementById("saveStatus").textContent = "保存完了 (ID: " + result.id + ")";
+    
+    // 保存が成功したタイミングで右上の時間を更新
+    updateSaveTime();
   }
 
   /* Drive読み込み */
