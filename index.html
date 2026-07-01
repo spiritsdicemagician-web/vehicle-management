@@ -13,14 +13,12 @@
     color: #e6edf3;
   }
 
-  /* 全体レイアウト（中央寄せ） */
   .container {
     max-width: 1100px;
     margin: auto;
     padding: 24px;
   }
 
-  /* タイトルロゴ */
   .logo {
     font-size: 32px;
     font-weight: bold;
@@ -42,7 +40,6 @@
     color: #58a6ff;
   }
 
-  /* 統計カード */
   .stats {
     display: flex;
     gap: 20px;
@@ -54,17 +51,7 @@
     border-radius: 10px;
     text-align: center;
   }
-  .stat-box h3 {
-    margin: 0;
-    font-size: 18px;
-    color: #58a6ff;
-  }
-  .stat-box p {
-    font-size: 24px;
-    margin: 10px 0 0;
-  }
 
-  /* テーブル */
   table {
     width: 100%;
     border-collapse: collapse;
@@ -78,7 +65,6 @@
     background: #21262d;
   }
 
-  /* 入力フォーム */
   input, button {
     padding: 10px;
     margin-top: 6px;
@@ -100,10 +86,33 @@
     background: #2ea043;
   }
 
+  .edit-btn {
+    background: #0078d4;
+  }
+  .edit-btn:hover {
+    background: #0a84ff;
+  }
+
+  .delete-btn {
+    background: #d9534f;
+  }
+  .delete-btn:hover {
+    background: #c9302c;
+  }
+
   .status {
     font-size: 0.9em;
     margin-top: 6px;
     color: #9cdcfe;
+  }
+
+  /* 車両登録とドライブ連携を横並びにする */
+  .flex-row {
+    display: flex;
+    gap: 20px;
+  }
+  .flex-row .card {
+    flex: 1;
   }
 </style>
 </head>
@@ -111,7 +120,6 @@
 
 <div class="container">
 
-  <!-- ロゴ -->
   <div class="logo">CAR MANAGER</div>
 
   <!-- ダッシュボード -->
@@ -145,41 +153,47 @@
           <th>使用者</th>
           <th>点検日</th>
           <th>備考</th>
+          <th>編集</th>
+          <th>削除</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <!-- 車両登録 -->
-  <div class="card">
-    <h2>車両登録</h2>
-    <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
-    <label>車種：<br><input type="text" id="model"></label><br>
-    <label>メーカー：<br><input type="text" id="maker"></label><br>
-    <label>使用者：<br><input type="text" id="user"></label><br>
-    <label>点検日：<br><input type="date" id="inspection"></label><br>
-    <label>備考：<br><input type="text" id="note"></label><br>
-    <button id="addCar">登録する</button>
-  </div>
+  <!-- 車両登録 + Googleドライブ連携（横並び） -->
+  <div class="flex-row">
 
-  <!-- Googleドライブ連携 -->
-  <div class="card">
-    <h2>Googleドライブ連携</h2>
-    <button id="loginBtn">Googleログイン</button>
-    <p id="loginStatus" class="status"></p>
+    <!-- 車両登録 -->
+    <div class="card">
+      <h2>車両登録</h2>
+      <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
+      <label>車種：<br><input type="text" id="model"></label><br>
+      <label>メーカー：<br><input type="text" id="maker"></label><br>
+      <label>使用者：<br><input type="text" id="user"></label><br>
+      <label>点検日：<br><input type="date" id="inspection"></label><br>
+      <label>備考：<br><input type="text" id="note"></label><br>
+      <button id="addCar">登録する</button>
+    </div>
 
-    <button onclick="saveVehicleData()">Googleドライブに保存</button>
-    <p id="saveStatus" class="status"></p>
+    <!-- Googleドライブ連携 -->
+    <div class="card">
+      <h2>Googleドライブ連携</h2>
+      <button id="loginBtn">Googleログイン</button>
+      <p id="loginStatus" class="status"></p>
 
-    <button id="loadBtn">Googleドライブから読み込む</button>
-    <p id="loadStatus" class="status"></p>
+      <button onclick="saveVehicleData()">Googleドライブに保存</button>
+      <p id="saveStatus" class="status"></p>
+
+      <button id="loadBtn">Googleドライブから読み込む</button>
+      <p id="loadStatus" class="status"></p>
+    </div>
+
   </div>
 
 </div>
 
 <script>
-  /* 既存コードそのまま統合 */
   let appData = { cars: [] };
   let tokenClient;
   let accessToken = null;
@@ -216,6 +230,30 @@
     updateStats();
   });
 
+  /* 編集機能（簡易版） */
+  function editCar(id) {
+    const car = appData.cars.find(c => c.id === id);
+    if (!car) return;
+
+    document.getElementById("carNumber").value = car.number;
+    document.getElementById("model").value = car.model;
+    document.getElementById("maker").value = car.maker;
+    document.getElementById("user").value = car.user;
+    document.getElementById("inspection").value = car.inspection;
+    document.getElementById("note").value = car.note;
+
+    appData.cars = appData.cars.filter(c => c.id !== id);
+    renderCarTable();
+    updateStats();
+  }
+
+  /* 削除機能 */
+  function deleteCar(id) {
+    appData.cars = appData.cars.filter(car => car.id !== id);
+    renderCarTable();
+    updateStats();
+  }
+
   /* 車両一覧描画 */
   function renderCarTable() {
     const tbody = document.querySelector("#carTable tbody");
@@ -229,6 +267,8 @@
         <td>${car.user}</td>
         <td>${car.inspection}</td>
         <td>${car.note ?? ""}</td>
+        <td><button class="edit-btn" onclick="editCar(${car.id})">編集</button></td>
+        <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td>
       `;
       tbody.appendChild(tr);
     });
