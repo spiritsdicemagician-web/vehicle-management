@@ -28,11 +28,14 @@ font-size:56px;font-weight:900;font-style:italic;
 letter-spacing:2px;color:#fff;
 text-shadow:0 0 20px rgba(100,150,255,.8);
 }
-.hero-car{
-height:180px;
-margin-bottom:20px;
-background:linear-gradient(90deg,transparent,rgba(80,120,255,.08));
-border-radius:20px;
+.hero-car {
+  height: 220px;
+  margin-bottom: 20px;
+  border-radius: 20px;
+  /* 画像（手前）とグラデーション（奥）をカンマ区切りで両方指定 */
+  background: 
+    url("car.png") right center / auto 220px no-repeat,
+    linear-gradient(90deg, transparent, rgba(80,120,255,.08));
 }
 .current-time{
 background:rgba(20,30,60,.6);
@@ -114,15 +117,6 @@ align-items:center;
 background:rgba(255,255,255,.04);
 padding:12px;
 border-radius:10px;
-}
-.hero-car{
-    height:220px;
-    margin-bottom:20px;
-
-    background-image:url("car.png");
-    background-repeat:no-repeat;
-    background-position:right center;
-    background-size:auto 220px;
 }
 </style>
 </head>
