@@ -11,38 +11,22 @@
     font-family: 'Segoe UI', sans-serif;
     background: #0d1117;
     color: #e6edf3;
-    display: flex;
   }
 
-  /* サイドバー */
-  .sidebar {
-    width: 240px;
-    background: #161b22;
-    height: 100vh;
-    padding: 20px;
-    box-sizing: border-box;
-    position: fixed;
-  }
-  .sidebar h2 {
-    margin: 0 0 20px;
-    font-size: 20px;
-    color: #58a6ff;
-  }
-  .menu-item {
-    padding: 12px;
-    margin-bottom: 8px;
-    background: #21262d;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  .menu-item:hover {
-    background: #30363d;
-  }
-
-  /* メイン画面 */
-  .main {
-    margin-left: 260px;
+  /* 全体レイアウト（中央寄せ） */
+  .container {
+    max-width: 1100px;
+    margin: auto;
     padding: 24px;
+  }
+
+  /* タイトルロゴ */
+  .logo {
+    font-size: 32px;
+    font-weight: bold;
+    color: #58a6ff;
+    text-align: center;
+    margin-bottom: 20px;
   }
 
   .card {
@@ -116,13 +100,6 @@
     background: #2ea043;
   }
 
-  .delete-btn {
-    background: #d9534f;
-  }
-  .delete-btn:hover {
-    background: #c9302c;
-  }
-
   .status {
     font-size: 0.9em;
     margin-top: 6px;
@@ -132,100 +109,76 @@
 </head>
 <body>
 
-<!-- サイドバー -->
-<div class="sidebar">
-  <h2>CAR MANAGER</h2>
-  <div class="menu-item" onclick="showSection('dashboard')">ダッシュボード</div>
-  <div class="menu-item" onclick="showSection('list')">車両一覧</div>
-  <div class="menu-item" onclick="showSection('register')">車両登録</div>
-  <div class="menu-item" onclick="showSection('data')">データ管理</div>
-</div>
+<div class="container">
 
-<!-- メイン画面 -->
-<div class="main">
+  <!-- ロゴ -->
+  <div class="logo">CAR MANAGER</div>
 
   <!-- ダッシュボード -->
-  <div id="dashboard" class="section">
-    <div class="card">
-      <h2>ダッシュボード</h2>
-      <div class="stats">
-        <div class="stat-box">
-          <h3>登録車両数</h3>
-          <p id="statTotal">0台</p>
-        </div>
-        <div class="stat-box">
-          <h3>今月の点検予定</h3>
-          <p id="statUpcoming">0台</p>
-        </div>
-        <div class="stat-box">
-          <h3>点検期限超過</h3>
-          <p id="statExpired">0台</p>
-        </div>
+  <div class="card">
+    <h2>ダッシュボード</h2>
+    <div class="stats">
+      <div class="stat-box">
+        <h3>登録車両数</h3>
+        <p id="statTotal">0台</p>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>Googleドライブ連携</h2>
-      <button id="loginBtn">Googleログイン</button>
-      <p id="loginStatus" class="status"></p>
+      <div class="stat-box">
+        <h3>今月の点検予定</h3>
+        <p id="statUpcoming">0台</p>
+      </div>
+      <div class="stat-box">
+        <h3>点検期限超過</h3>
+        <p id="statExpired">0台</p>
+      </div>
     </div>
   </div>
 
   <!-- 車両一覧 -->
-  <div id="list" class="section" style="display:none;">
-    <div class="card">
-      <h2>車両一覧</h2>
-      <table id="carTable">
-        <thead>
-          <tr>
-            <th>ナンバー</th>
-            <th>車種</th>
-            <th>メーカー</th>
-            <th>使用者</th>
-            <th>点検日</th>
-            <th>備考</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+  <div class="card">
+    <h2>車両一覧</h2>
+    <table id="carTable">
+      <thead>
+        <tr>
+          <th>ナンバー</th>
+          <th>車種</th>
+          <th>メーカー</th>
+          <th>使用者</th>
+          <th>点検日</th>
+          <th>備考</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
   <!-- 車両登録 -->
-  <div id="register" class="section" style="display:none;">
-    <div class="card">
-      <h2>車両登録</h2>
-      <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
-      <label>車種：<br><input type="text" id="model"></label><br>
-      <label>メーカー：<br><input type="text" id="maker"></label><br>
-      <label>使用者：<br><input type="text" id="user"></label><br>
-      <label>点検日：<br><input type="date" id="inspection"></label><br>
-      <label>備考：<br><input type="text" id="note"></label><br>
-      <button id="addCar">登録する</button>
-    </div>
+  <div class="card">
+    <h2>車両登録</h2>
+    <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
+    <label>車種：<br><input type="text" id="model"></label><br>
+    <label>メーカー：<br><input type="text" id="maker"></label><br>
+    <label>使用者：<br><input type="text" id="user"></label><br>
+    <label>点検日：<br><input type="date" id="inspection"></label><br>
+    <label>備考：<br><input type="text" id="note"></label><br>
+    <button id="addCar">登録する</button>
   </div>
 
-  <!-- データ管理 -->
-  <div id="data" class="section" style="display:none;">
-    <div class="card">
-      <h2>データ管理</h2>
-      <button onclick="saveVehicleData()">Googleドライブに保存</button>
-      <p id="saveStatus" class="status"></p>
+  <!-- Googleドライブ連携 -->
+  <div class="card">
+    <h2>Googleドライブ連携</h2>
+    <button id="loginBtn">Googleログイン</button>
+    <p id="loginStatus" class="status"></p>
 
-      <button id="loadBtn">Googleドライブから読み込む</button>
-      <p id="loadStatus" class="status"></p>
-    </div>
+    <button onclick="saveVehicleData()">Googleドライブに保存</button>
+    <p id="saveStatus" class="status"></p>
+
+    <button id="loadBtn">Googleドライブから読み込む</button>
+    <p id="loadStatus" class="status"></p>
   </div>
 
 </div>
 
 <script>
-  /* セクション切り替え */
-  function showSection(id) {
-    document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
-    document.getElementById(id).style.display = 'block';
-  }
-
   /* 既存コードそのまま統合 */
   let appData = { cars: [] };
   let tokenClient;
