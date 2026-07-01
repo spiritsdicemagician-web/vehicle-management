@@ -29,13 +29,18 @@ letter-spacing:2px;color:#fff;
 text-shadow:0 0 20px rgba(100,150,255,.8);
 }
 .hero-car {
-  height: 220px;
+  height: 220px; /* ここを大きくする（例：220px）と画像が縦に広がります */
   margin-bottom: 20px;
   border-radius: 20px;
-  /* 画像（手前）とグラデーション（奥）をカンマ区切りで両方指定 */
-  background: 
-    url("car.png") right center / auto 220px no-repeat,
-    linear-gradient(90deg, transparent, rgba(80,120,255,.08));
+  /* 画像（手前）とグラデーション（奥）を指定 */
+  /* background-size: cover; を追加して、領域全体を画像で満たします */
+  /* background-position: center; で車の中央を基準にします */
+  background:
+    url("car.png") center / cover no-repeat,
+    linear-gradient(135deg, transparent, rgba(80,120,255,.08));
+  /* 元の記述を削除またはコメントアウト */
+  /* background-position: right center; */
+  /* background-size: auto 220px; */
 }
 .current-time{
 background:rgba(20,30,60,.6);
