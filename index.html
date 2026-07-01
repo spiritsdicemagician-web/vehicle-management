@@ -4,60 +4,229 @@
 <meta charset="UTF-8">
 <title>車両管理アプリ</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <style>
-  body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #1e1e1e; color: #e0e0e0; }
-  .container { padding: 24px; max-width: 1100px; margin: auto; }
-  .card { background: #2a2a2a; padding: 20px; border-radius: 10px; margin-top: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.4); }
-  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-  th, td { border-bottom: 1px solid #444; padding: 10px; }
-  th { background: #333; }
-  input, button { padding: 8px; margin-top: 6px; border-radius: 6px; border: none; }
-  input { background: #3a3a3a; color: #fff; width: 250px; }
-  button { background: #0078d4; color: #fff; cursor: pointer; font-weight: 600; }
-  button:hover { background: #0a84ff; }
-  button.delete-btn { background: #d9534f; }
-  button.delete-btn:hover { background: #c9302c; }
-  .status { font-size: 0.9em; margin-top: 6px; color: #9cdcfe; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    display: flex;
+  }
+
+  /* サイドバー */
+  .sidebar {
+    width: 240px;
+    background: #161b22;
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+    position: fixed;
+  }
+  .sidebar h2 {
+    margin: 0 0 20px;
+    font-size: 20px;
+    color: #58a6ff;
+  }
+  .menu-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #21262d;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .menu-item:hover {
+    background: #30363d;
+  }
+
+  /* メイン画面 */
+  .main {
+    margin-left: 260px;
+    padding: 24px;
+  }
+
+  .card {
+    background: #161b22;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  }
+
+  .card h2 {
+    margin-top: 0;
+    color: #58a6ff;
+  }
+
+  /* 統計カード */
+  .stats {
+    display: flex;
+    gap: 20px;
+  }
+  .stat-box {
+    flex: 1;
+    background: #21262d;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  .stat-box h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #58a6ff;
+  }
+  .stat-box p {
+    font-size: 24px;
+    margin: 10px 0 0;
+  }
+
+  /* テーブル */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+  th, td {
+    border-bottom: 1px solid #30363d;
+    padding: 10px;
+  }
+  th {
+    background: #21262d;
+  }
+
+  /* 入力フォーム */
+  input, button {
+    padding: 10px;
+    margin-top: 6px;
+    border-radius: 6px;
+    border: none;
+  }
+  input {
+    background: #21262d;
+    color: #fff;
+    width: 260px;
+  }
+  button {
+    background: #238636;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button:hover {
+    background: #2ea043;
+  }
+
+  .delete-btn {
+    background: #d9534f;
+  }
+  .delete-btn:hover {
+    background: #c9302c;
+  }
+
+  .status {
+    font-size: 0.9em;
+    margin-top: 6px;
+    color: #9cdcfe;
+  }
 </style>
 </head>
 <body>
 
-<div class="container">
-  <h1>車両管理アプリ</h1>
+<!-- サイドバー -->
+<div class="sidebar">
+  <h2>CAR MANAGER</h2>
+  <div class="menu-item" onclick="showSection('dashboard')">ダッシュボード</div>
+  <div class="menu-item" onclick="showSection('list')">車両一覧</div>
+  <div class="menu-item" onclick="showSection('register')">車両登録</div>
+  <div class="menu-item" onclick="showSection('data')">データ管理</div>
+</div>
 
-  <div class="card">
-    <h2>Googleドライブ連携</h2>
-    <button id="loginBtn">Googleログイン</button>
-    <button id="loadBtn">データ読み込む</button>
-    <p id="loginStatus" class="status"></p>
-    <p id="loadStatus" class="status"></p>
+<!-- メイン画面 -->
+<div class="main">
+
+  <!-- ダッシュボード -->
+  <div id="dashboard" class="section">
+    <div class="card">
+      <h2>ダッシュボード</h2>
+      <div class="stats">
+        <div class="stat-box">
+          <h3>登録車両数</h3>
+          <p id="statTotal">0台</p>
+        </div>
+        <div class="stat-box">
+          <h3>今月の点検予定</h3>
+          <p id="statUpcoming">0台</p>
+        </div>
+        <div class="stat-box">
+          <h3>点検期限超過</h3>
+          <p id="statExpired">0台</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Googleドライブ連携</h2>
+      <button id="loginBtn">Googleログイン</button>
+      <p id="loginStatus" class="status"></p>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>車両一覧</h2>
-    <table id="carTable">
-      <thead>
-        <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>主な使用者</th><th>点検日</th><th>備考</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <button onclick="saveVehicleData()">車両データをGoogleドライブに保存</button>
-    <p id="saveStatus" class="status"></p>
+  <!-- 車両一覧 -->
+  <div id="list" class="section" style="display:none;">
+    <div class="card">
+      <h2>車両一覧</h2>
+      <table id="carTable">
+        <thead>
+          <tr>
+            <th>ナンバー</th>
+            <th>車種</th>
+            <th>メーカー</th>
+            <th>使用者</th>
+            <th>点検日</th>
+            <th>備考</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>車両登録</h2>
-    <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
-    <label>車種：<br><input type="text" id="model"></label><br>
-    <label>メーカー：<br><input type="text" id="maker"></label><br>
-    <label>主な使用者：<br><input type="text" id="user"></label><br>
-    <label>点検日：<br><input type="date" id="inspection"></label><br>
-    <label>備考：<br><input type="text" id="note"></label><br>
-    <button id="addCar">車両を登録</button>
+  <!-- 車両登録 -->
+  <div id="register" class="section" style="display:none;">
+    <div class="card">
+      <h2>車両登録</h2>
+      <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
+      <label>車種：<br><input type="text" id="model"></label><br>
+      <label>メーカー：<br><input type="text" id="maker"></label><br>
+      <label>使用者：<br><input type="text" id="user"></label><br>
+      <label>点検日：<br><input type="date" id="inspection"></label><br>
+      <label>備考：<br><input type="text" id="note"></label><br>
+      <button id="addCar">登録する</button>
+    </div>
   </div>
+
+  <!-- データ管理 -->
+  <div id="data" class="section" style="display:none;">
+    <div class="card">
+      <h2>データ管理</h2>
+      <button onclick="saveVehicleData()">Googleドライブに保存</button>
+      <p id="saveStatus" class="status"></p>
+
+      <button id="loadBtn">Googleドライブから読み込む</button>
+      <p id="loadStatus" class="status"></p>
+    </div>
+  </div>
+
 </div>
 
 <script>
+  /* セクション切り替え */
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(sec => sec.style.display = 'none');
+    document.getElementById(id).style.display = 'block';
+  }
+
+  /* 既存コードそのまま統合 */
   let appData = { cars: [] };
   let tokenClient;
   let accessToken = null;
@@ -74,6 +243,7 @@
     document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
   };
 
+  /* 車両登録 */
   document.getElementById("addCar").addEventListener("click", () => {
     const number = document.getElementById("carNumber").value.trim();
     const model = document.getElementById("model").value.trim();
@@ -90,8 +260,10 @@
     });
 
     renderCarTable();
+    updateStats();
   });
 
+  /* 車両一覧描画 */
   function renderCarTable() {
     const tbody = document.querySelector("#carTable tbody");
     tbody.innerHTML = "";
@@ -109,8 +281,31 @@
     });
   }
 
+  /* ダッシュボード統計 */
+  function updateStats() {
+    document.getElementById("statTotal").textContent = appData.cars.length + "台";
+
+    const today = new Date();
+    let upcoming = 0;
+    let expired = 0;
+
+    appData.cars.forEach(car => {
+      if (!car.inspection) return;
+      const date = new Date(car.inspection);
+      const diff = (date - today) / (1000 * 60 * 60 * 24);
+
+      if (diff >= 0 && diff <= 30) upcoming++;
+      if (diff < 0) expired++;
+    });
+
+    document.getElementById("statUpcoming").textContent = upcoming + "台";
+    document.getElementById("statExpired").textContent = expired + "台";
+  }
+
+  /* Drive保存 */
   async function saveVehicleData() {
     if (!accessToken) { alert("先にログインしてください"); return; }
+
     const file = new Blob([JSON.stringify(appData)], { type: "application/json" });
     const metadata = { name: "vehicle_data.json", mimeType: "application/json" };
     const form = new FormData();
@@ -126,13 +321,12 @@
     document.getElementById("saveStatus").textContent = "保存完了 (ID: " + result.id + ")";
   }
 
-  /* ★★★ Google Drive から vehicle_data.json を読み込む機能 ★★★ */
+  /* Drive読み込み */
   document.getElementById("loadBtn").onclick = async () => {
     if (!accessToken) { alert("先にログインしてください"); return; }
 
     document.getElementById("loadStatus").textContent = "読み込み中…";
 
-    // vehicle_data.json を検索
     const query = encodeURIComponent("name = 'vehicle_data.json' and trashed = false");
     const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
       headers: { Authorization: "Bearer " + accessToken }
@@ -146,7 +340,6 @@
 
     const fileId = list.files[0].id;
 
-    // ファイル内容を取得
     const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers: { Authorization: "Bearer " + accessToken }
     });
@@ -155,8 +348,11 @@
     appData = data;
 
     renderCarTable();
+    updateStats();
+
     document.getElementById("loadStatus").textContent = "読み込み完了！";
   };
 </script>
+
 </body>
 </html>
