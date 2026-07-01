@@ -2,131 +2,625 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>CAR MANAGER</title>
+<title>車両管理アプリ</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <style>
-  body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; padding: 20px; }
-  .container { max-width: 1100px; margin: auto; }
-  .logo { font-size: 32px; font-weight: bold; color: #58a6ff; text-align: center; margin-bottom: 20px; }
-  .header-info { text-align: right; color: #8b949e; margin-bottom: 10px; }
-  .card { background: #161b22; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #333; }
-  .status { font-size: 0.9em; color: #9cdcfe; margin: 5px 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-  th, td { border-bottom: 1px solid #30363d; padding: 10px; text-align: left; }
-  th { background: #21262d; }
-  button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 6px; color: #fff; font-weight: 600; margin: 5px; }
-  .btn-primary { background: #238636; }
-  .btn-drive { background: #3b82f6; }
-  .delete-btn { background: #d9534f; }
-  .detail-btn { background: #8250df; }
-  input { padding: 10px; margin: 5px; border-radius: 6px; border: 1px solid #333; background: #21262d; color: white; }
-  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); }
-  .modal-content { background: #161b22; margin: 10% auto; padding: 20px; width: 50%; border-radius: 10px; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 24px;
+  }
+
+  .header-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .logo {
+    font-size: 32px;
+    font-weight: bold;
+    color: #58a6ff;
+  }
+
+  .current-time {
+    font-size: 16px;
+    color: #8b949e;
+    background: #161b22;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+  }
+
+  .card {
+    background: #161b22;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  }
+
+  .card h2 {
+    margin-top: 0;
+    color: #58a6ff;
+  }
+
+  .stats {
+    display: flex;
+    gap: 20px;
+  }
+  .stat-box {
+    flex: 1;
+    background: #21262d;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+  th, td {
+    border-bottom: 1px solid #30363d;
+    padding: 10px;
+    text-align: left;
+  }
+  th {
+    background: #21262d;
+  }
+
+  input, button, textarea {
+    padding: 10px;
+    margin-top: 6px;
+    border-radius: 6px;
+    border: none;
+    box-sizing: border-box;
+  }
+  input, textarea {
+    background: #21262d;
+    color: #fff;
+    width: 260px;
+  }
+  textarea {
+    height: 60px;
+    resize: vertical;
+  }
+  button {
+    background: #238636;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button:hover {
+    background: #2ea043;
+  }
+
+  .detail-btn {
+    background: #8b949e;
+  }
+  .detail-btn:hover {
+    background: #6e7681;
+  }
+
+  .edit-btn {
+    background: #0078d4;
+  }
+  .edit-btn:hover {
+    background: #0a84ff;
+  }
+
+  .delete-btn {
+    background: #d9534f;
+  }
+  .delete-btn:hover {
+    background: #c9302c;
+  }
+
+  .status {
+    font-size: 0.9em;
+    margin-top: 6px;
+    color: #9cdcfe;
+  }
+
+  /* 車両登録とドライブ連携を横並びにする */
+  .flex-row {
+    display: flex;
+    gap: 20px;
+  }
+  .flex-row .card {
+    flex: 1;
+  }
+
+  /* 詳細モーダル用スタイル */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-content {
+    background: #161b22;
+    padding: 24px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 1px solid #30363d;
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.5);
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #30363d;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .modal-header h3 { margin: 0; color: #58a6ff; }
+  .close-modal {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+  }
+  .close-modal:hover { color: #f85149; }
+  .history-form {
+    background: #21262d;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+  }
+  .history-form input, .history-form textarea {
+    width: 100%;
+    margin-bottom: 8px;
+  }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="logo">CAR MANAGER</div>
-  <div class="header-info" id="currentDateTime"></div>
 
-  <!-- ドライブ連携セクション（復活） -->
-  <div class="card">
-    <h2>Googleドライブ連携</h2>
-    <button id="loginBtn" class="btn-drive">Googleログイン</button>
-    <button id="loadBtn" class="btn-drive">データを読み込む</button>
-    <button onclick="saveVehicleData()" class="btn-drive">Googleドライブに保存</button>
-    <p id="statusMsg" class="status">準備完了</p>
+  <div class="header-wrap">
+    <div class="logo">CAR MANAGER</div>
+    <!-- 右側に今の日付と時間を記入 -->
+    <div class="current-time" id="clock">----/--/-- --:--:--</div>
   </div>
 
+  <!-- ダッシュボード -->
+  <div class="card">
+    <h2>ダッシュボード</h2>
+    <div class="stats">
+      <div class="stat-box">
+        <!-- 登録車両数の横に車のアイコン -->
+        <h3>登録車両数 🚗</h3>
+        <p id="statTotal">0台</p>
+      </div>
+      <div class="stat-box">
+        <h3>今月の点検予定</h3>
+        <p id="statUpcoming">0台</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 車両一覧 -->
   <div class="card">
     <h2>車両一覧</h2>
     <table id="carTable">
       <thead>
-        <tr><th>ナンバー</th><th>車種</th><th>車検日</th><th>点検日</th><th>詳細</th><th>削除</th></tr>
+        <tr>
+          <th>ナンバー</th>
+          <th>車種</th>
+          <th>メーカー</th>
+          <th>使用者</th>
+          <th>車検日</th>
+          <th>点検日</th>
+          <th>備考</th>
+          <th>詳細</th>
+          <th>編集</th>
+          <th>削除</th>
+        </tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <div class="card">
-    <h2>車両登録</h2>
-    <input type="text" id="carNumber" placeholder="ナンバー">
-    <input type="text" id="model" placeholder="車種">
-    <input type="date" id="shaken" placeholder="車検日">
-    <input type="date" id="inspection" placeholder="点検日">
-    <button id="addCar" class="btn-primary">登録する</button>
+  <!-- 車両登録 + Googleドライブ連携（横並び） -->
+  <div class="flex-row">
+
+    <!-- 車両登録 -->
+    <div class="card">
+      <h2>車両登録</h2>
+      <label>ナンバー：<br><input type="text" id="carNumber"></label><br>
+      <label>車種：<br><input type="text" id="model"></label><br>
+      <label>メーカー：<br><input type="text" id="maker"></label><br>
+      <label>使用者：<br><input type="text" id="user"></label><br>
+      <label>車検日：<br><input type="date" id="inspection2"></label><br>
+      <label>点検日：<br><input type="date" id="inspection"></label><br>
+      <label>備考：<br><input type="text" id="note"></label><br>
+      <button id="addCar">登録する</button>
+    </div>
+
+    <!-- Googleドライブ連携 -->
+    <div class="card">
+      <h2>Googleドライブ連携</h2>
+      <button id="loginBtn">Googleログイン</button>
+      <p id="loginStatus" class="status"></p>
+
+      <button onclick="saveVehicleData()">Googleドライブに保存</button>
+      <p id="saveStatus" class="status"></p>
+
+      <button id="loadBtn">Googleドライブから読み込む</button>
+      <p id="loadStatus" class="status"></p>
+    </div>
+
   </div>
+
 </div>
 
-<div id="detailModal" class="modal">
+<!-- 詳細・過去の履歴用モーダル -->
+<div class="modal-overlay" id="detailModal">
   <div class="modal-content">
-    <h2>整備履歴</h2>
-    <div id="historyList"></div>
-    <button onclick="document.getElementById('detailModal').style.display='none'">閉じる</button>
+    <div class="modal-header">
+      <h3 id="modalTitle">車両詳細履歴</h3>
+      <button class="close-modal" onclick="closeModal()">&times;</button>
+    </div>
+    
+    <h4>新しい履歴を追加</h4>
+    <div class="history-form">
+      <label>点検日:<br><input type="date" id="histDate"></label><br>
+      <label>各種検査内容:<br><textarea id="histContent" placeholder="例: 法定2年点検、エンジンオイル交換、ブレーキパッド残量チェックなど"></textarea></label><br>
+      <button onclick="addHistoryRecord()">履歴を保存</button>
+    </div>
+
+    <h4>過去の履歴一覧</h4>
+    <table id="historyTable">
+      <thead>
+        <tr>
+          <th style="width: 30%;">点検日</th>
+          <th style="width: 70%;">各種検査内容</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 </div>
 
 <script>
   let appData = { cars: [] };
+  let tokenClient;
   let accessToken = null;
-  const tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    callback: (res) => { accessToken = res.access_token; document.getElementById("statusMsg").textContent = "ログイン成功"; }
-  });
+  let currentDetailCarId = null; // 現在詳細を開いている車両のID
 
-  document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
-
-  function updateDateTime() { document.getElementById("currentDateTime").textContent = new Date().toLocaleString('ja-JP'); }
-  setInterval(updateDateTime, 1000);
-  updateDateTime();
-
-  document.getElementById("addCar").onclick = () => {
-    appData.cars.push({
-      id: Date.now(),
-      number: document.getElementById("carNumber").value,
-      model: document.getElementById("model").value,
-      shaken: document.getElementById("shaken").value,
-      inspection: document.getElementById("inspection").value,
-      history: []
+  window.onload = function () {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: '1074075293181-lg9bbbgk3h3shb1fdnjspt860i276957.apps.googleusercontent.com',
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: (response) => {
+        accessToken = response.access_token;
+        document.getElementById("loginStatus").textContent = "ログイン成功！";
+      },
     });
-    renderCarTable();
+    document.getElementById("loginBtn").onclick = () => tokenClient.requestAccessToken();
+
+    // 時計のリアルタイム更新スタート
+    startClock();
   };
 
+  /* リアルタイム時計機能 */
+  function startClock() {
+    const updateClock = () => {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById("clock").textContent = `${yyyy}/${mm}/${dd} ${hh}:${min}:${ss}`;
+    };
+    updateClock();
+    setInterval(updateClock, 1000);
+  }
+
+  /* 車両登録 */
+  document.getElementById("addCar").addEventListener("click", () => {
+    const number = document.getElementById("carNumber").value.trim();
+    const model = document.getElementById("model").value.trim();
+    if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
+
+    appData.cars.push({
+      id: Date.now(),
+      number,
+      model,
+      maker: document.getElementById("maker").value,
+      user: document.getElementById("user").value,
+      inspection2: document.getElementById("inspection2").value, // 車検日
+      inspection: document.getElementById("inspection").value,   // 点検日
+      note: document.getElementById("note").value,
+      history: [] // 過去の履歴を格納する配列を初期化
+    });
+
+    renderCarTable();
+    updateStats();
+    clearForm();
+  });
+
+  /* フォームのクリア */
+  function clearForm() {
+    document.getElementById("carNumber").value = "";
+    document.getElementById("model").value = "";
+    document.getElementById("maker").value = "";
+    document.getElementById("user").value = "";
+    document.getElementById("inspection2").value = "";
+    document.getElementById("inspection").value = "";
+    document.getElementById("note").value = "";
+  }
+
+  /* 編集機能（簡易版） */
+  function editCar(id) {
+    const car = appData.cars.find(c => c.id === id);
+    if (!car) return;
+
+    document.getElementById("carNumber").value = car.number;
+    document.getElementById("model").value = car.model;
+    document.getElementById("maker").value = car.maker;
+    document.getElementById("user").value = car.user;
+    document.getElementById("inspection2").value = car.inspection2 ?? "";
+    document.getElementById("inspection").value = car.inspection;
+    document.getElementById("note").value = car.note;
+
+    // 編集時は一度リストから除外して再登録させる元の仕様を維持
+    // (必要に応じて既存の履歴を引き継ぐため、履歴データを一時退避させて登録時に結合するなどの調整も可能ですが、ベースコードの挙動を維持しています)
+    const savedHistory = car.history ?? [];
+    
+    // 登録ボタンを押した時に履歴が消えないよう、一時的に一工夫加える仕様にします
+    appData.cars = appData.cars.filter(c => c.id !== id);
+    
+    // 次回の登録時にこの履歴を引き継げるように、addCarをラップするか、簡易的にその場で処理
+    document.getElementById("addCar").onclick = function wrapper() {
+      const number = document.getElementById("carNumber").value.trim();
+      const model = document.getElementById("model").value.trim();
+      if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
+      
+      appData.cars.push({
+        id: Date.now(),
+        number,
+        model,
+        maker: document.getElementById("maker").value,
+        user: document.getElementById("user").value,
+        inspection2: document.getElementById("inspection2").value,
+        inspection: document.getElementById("inspection").value,
+        note: document.getElementById("note").value,
+        history: savedHistory
+      });
+      renderCarTable();
+      updateStats();
+      clearForm();
+      // 元のイベントリスナーに戻す
+      document.getElementById("addCar").removeEventListener("click", wrapper);
+      setupOriginalAddEvent();
+    };
+
+    renderCarTable();
+    updateStats();
+  }
+
+  function setupOriginalAddEvent() {
+    // 既存のイベントを一度クリアして再設定するための仕組み
+    const oldBtn = document.getElementById("addCar");
+    const newBtn = oldBtn.cloneNode(true);
+    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+    newBtn.addEventListener("click", () => {
+      const number = document.getElementById("carNumber").value.trim();
+      const model = document.getElementById("model").value.trim();
+      if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
+      appData.cars.push({
+        id: Date.now(),
+        number,
+        model,
+        maker: document.getElementById("maker").value,
+        user: document.getElementById("user").value,
+        inspection2: document.getElementById("inspection2").value,
+        inspection: document.getElementById("inspection").value,
+        note: document.getElementById("note").value,
+        history: []
+      });
+      renderCarTable();
+      updateStats();
+      clearForm();
+    });
+  }
+
+  /* 削除機能 */
+  function deleteCar(id) {
+    appData.cars = appData.cars.filter(car => car.id !== id);
+    renderCarTable();
+    updateStats();
+  }
+
+  /* 詳細モーダルを開く */
+  function openDetail(id) {
+    currentDetailCarId = id;
+    const car = appData.cars.find(c => c.id === id);
+    if (!car) return;
+
+    if (!car.history) car.history = [];
+
+    document.getElementById("modalTitle").textContent = `【${car.number}】${car.model} 点検詳細履歴`;
+    document.getElementById("histDate").value = "";
+    document.getElementById("histContent").value = "";
+    
+    renderHistoryTable(car.history);
+    document.getElementById("detailModal").style.display = "flex";
+  }
+
+  /* モーダルを閉じる */
+  function closeModal() {
+    document.getElementById("detailModal").style.display = "none";
+    currentDetailCarId = null;
+  }
+
+  /* モーダル内の履歴テーブル描画 */
+  function renderHistoryTable(history) {
+    const tbody = document.querySelector("#historyTable tbody");
+    tbody.innerHTML = "";
+    if (history.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;color:#8b949e;">履歴がありません</td></tr>`;
+      return;
+    }
+    // 日付の新しい順に表示
+    const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+    sortedHistory.forEach(item => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.date}</td>
+        <td style="white-space: pre-wrap;">${item.content}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* 履歴レコードの追加 */
+  function addHistoryRecord() {
+    const date = document.getElementById("histDate").value;
+    const content = document.getElementById("histContent").value.trim();
+    if (!date || !content) { alert("点検日と検査内容は必須です"); return; }
+
+    const car = appData.cars.find(c => c.id === currentDetailCarId);
+    if (!car) return;
+
+    if (!car.history) car.history = [];
+    car.history.push({ date, content });
+
+    renderHistoryTable(car.history);
+    document.getElementById("histDate").value = "";
+    document.getElementById("histContent").value = "";
+  }
+
+  /* 車両一覧描画 */
   function renderCarTable() {
     const tbody = document.querySelector("#carTable tbody");
     tbody.innerHTML = "";
     appData.cars.forEach(car => {
-      tbody.innerHTML += `<tr>
-        <td>${car.number}</td><td>${car.model}</td><td>${car.shaken}</td><td>${car.inspection}</td>
-        <td><button class="detail-btn" onclick="showDetails(${car.id})">詳細</button></td>
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${car.number}</td>
+        <td>${car.model}</td>
+        <td>${car.maker}</td>
+        <td>${car.user}</td>
+        <td>${car.inspection2 ?? ""}</td>
+        <td>${car.inspection}</td>
+        <td>${car.note ?? ""}</td>
+        <td><button class="detail-btn" onclick="openDetail(${car.id})">詳細</button></td>
+        <td><button class="edit-btn" onclick="editCar(${car.id})">編集</button></td>
         <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td>
-      </tr>`;
+      `;
+      tbody.appendChild(tr);
     });
   }
 
-  function deleteCar(id) { appData.cars = appData.cars.filter(c => c.id !== id); renderCarTable(); }
+  /* ダッシュボード統計 */
+  function updateStats() {
+    document.getElementById("statTotal").textContent = appData.cars.length + "台";
 
-  document.getElementById("loadBtn").onclick = async () => {
-    const res = await fetch("https://www.googleapis.com/drive/v3/files?q=name='vehicle_data.json'", { headers: { Authorization: "Bearer " + accessToken }});
-    const list = await res.json();
-    if (list.files?.length) {
-      const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${list.files[0].id}?alt=media`, { headers: { Authorization: "Bearer " + accessToken }});
-      appData = await fileRes.json();
-      renderCarTable();
-      document.getElementById("statusMsg").textContent = "読み込み完了";
-    }
-  };
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0 = 1月, 11 = 12月
+    
+    let upcoming = 0;
 
-  async function saveVehicleData() {
-    const blob = new Blob([JSON.stringify(appData)], { type: "application/json" });
-    const form = new FormData();
-    form.append("metadata", new Blob([JSON.stringify({ name: "vehicle_data.json" })], { type: "application/json" }));
-    form.append("file", blob);
-    await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", { method: "POST", headers: { Authorization: "Bearer " + accessToken }, body: form });
-    alert("保存しました");
+    appData.cars.forEach(car => {
+      if (!car.inspection2) return; // 車検日の入力がない場合はスキップ
+      
+      const inspection2Date = new Date(car.inspection2);
+      
+      // 車検日からちょうど2年後（24ヶ月後）の年月を計算
+      const targetYear = inspection2Date.getFullYear() + 2;
+      const targetMonth = inspection2Date.getMonth();
+
+      // 現在の年月が、車検日の2年後の年月と一致するか判定
+      if (currentYear === targetYear && currentMonth === targetMonth) {
+        upcoming++;
+      }
+    });
+
+    document.getElementById("statUpcoming").textContent = upcoming + "台";
   }
+
+  /* Drive保存 */
+  async function saveVehicleData() {
+    if (!accessToken) { alert("先にログインしてください"); return; }
+
+    const file = new Blob([JSON.stringify(appData)], { type: "application/json" });
+    const metadata = { name: "vehicle_data.json", mimeType: "application/json" };
+    const form = new FormData();
+    form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+    form.append("file", file);
+
+    const res = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + accessToken },
+      body: form
+    });
+    const result = await res.json();
+    document.getElementById("saveStatus").textContent = "保存完了 (ID: " + result.id + ")";
+  }
+
+  /* Drive読み込み */
+  document.getElementById("loadBtn").onclick = async () => {
+    if (!accessToken) { alert("先にログインしてください"); return; }
+
+    document.getElementById("loadStatus").textContent = "読み込み中…";
+
+    const query = encodeURIComponent("name = 'vehicle_data.json' and trashed = false");
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}`, {
+      headers: { Authorization: "Bearer " + accessToken }
+    });
+    const list = await res.json();
+
+    if (!list.files || list.files.length === 0) {
+      document.getElementById("loadStatus").textContent = "vehicle_data.json が見見つかりません";
+      return;
+    }
+
+    const fileId = list.files[0].id;
+
+    const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: "Bearer " + accessToken }
+    });
+
+    const data = await fileRes.json();
+    appData = data;
+
+    // 各車両データに歴史配列がない場合のフォールバックを確保
+    appData.cars.forEach(car => {
+      if (!car.history) car.history = [];
+    });
+
+    renderCarTable();
+    updateStats();
+
+    document.getElementById("loadStatus").textContent = "読み込み完了！";
+  };
 </script>
+
 </body>
 </html>
