@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>車両管理アプリ + Googleドライブ保存</title>
+<title>車両管理アプリ</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #1e1e1e; color: #e0e0e0; }
@@ -23,7 +23,7 @@
 <body>
 
 <div class="container">
-  <h1>車両管理アプリ + Googleドライブ保存</h1>
+  <h1>車両管理アプリ</h1>
 
   <div class="card">
     <h2>Googleドライブ連携</h2>
@@ -35,7 +35,8 @@
     <h2>車両一覧</h2>
     <table id="carTable">
       <thead>
-        <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>主な使用者</th><th>点検日</th><th>操作</th></tr>
+        <!-- ★ 操作 → 備考 に変更 ★ -->
+        <tr><th>ナンバー</th><th>車種</th><th>メーカー</th><th>主な使用者</th><th>点検日</th><th>備考</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -51,8 +52,8 @@
     <label>主な使用者：<br><input type="text" id="user"></label><br>
     <label>点検日：<br><input type="date" id="inspection"></label><br>
 
-    <!-- ★★★ 追加した項目（他は変更なし） ★★★ -->
-    <label>登録場所：<br><input type="text" id="location"></label><br>
+    <!-- ★ 点検日の下に備考を追加 ★ -->
+    <label>備考：<br><input type="text" id="note"></label><br>
 
     <button id="addCar">車両を登録</button>
   </div>
@@ -79,6 +80,7 @@
     const number = document.getElementById("carNumber").value.trim();
     const model = document.getElementById("model").value.trim();
     if (!number || !model) { alert("ナンバーと車種は必須です"); return; }
+
     appData.cars.push({
       id: Date.now(),
       number,
@@ -87,9 +89,10 @@
       user: document.getElementById("user").value,
       inspection: document.getElementById("inspection").value,
 
-      /* ★★★ 追加した項目 ★★★ */
-      location: document.getElementById("location").value
+      /* ★ 備考を追加 ★ */
+      note: document.getElementById("note").value
     });
+
     renderCarTable();
   });
 
@@ -103,9 +106,15 @@
     tbody.innerHTML = "";
     appData.cars.forEach(car => {
       const tr = document.createElement("tr");
+
+      /* ★ 操作ボタン → 備考表示に変更 ★ */
       tr.innerHTML = `
-        <td>${car.number}</td><td>${car.model}</td><td>${car.maker}</td><td>${car.user}</td><td>${car.inspection}</td>
-        <td><button class="delete-btn" onclick="deleteCar(${car.id})">削除</button></td>
+        <td>${car.number}</td>
+        <td>${car.model}</td>
+        <td>${car.maker}</td>
+        <td>${car.user}</td>
+        <td>${car.inspection}</td>
+        <td>${car.note ?? ""}</td>
       `;
       tbody.appendChild(tr);
     });
